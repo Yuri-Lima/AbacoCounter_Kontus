@@ -60,26 +60,70 @@ void LED::statusGreen(short int _statusG){
 
 //Ultrasson
 //=====================================================================================================================
-ULTRA::ULTRA(short int _echoPin,short int _trigPin){
+ULTRA::ULTRA(int _echoPin,int _trigPin){
   echoPin=_echoPin;
   trigPin=_trigPin;
   pinMode(echoPin, INPUT);pinMode(trigPin, OUTPUT);
 } 
-float ULTRA::distancia(){
-  long duracao, dist;
+int ULTRA::distancia(){
+  disT=duracao=i=0;
+  //for(i=0;i<2;i++){
+      //vetor[i]=0;
+      //}
+  //for(i=0;i<2;i++){
     //seta o pino 12 com um pulso baixo "LOW" ou desligado ou ainda 0
     digitalWrite(trigPin, LOW);
     // delay de 2 microssegundos
-    delayMicroseconds(2);
+    delayMicroseconds(20);
     //seta o pino 12 com pulso alto "HIGH" ou ligado ou ainda 1
     digitalWrite(trigPin, HIGH);
     //delay de 10 microssegundos
-    delayMicroseconds(10);
+    delayMicroseconds(100);
     //seta o pino 12 com pulso baixo novamente
     digitalWrite(trigPin, LOW);
     duracao=pulseIn(echoPin, HIGH);
-    dist = duracao / 29.4 / 2;
-    return dist;
+    disT=duracao / 29.4 / 2;
+    soma+=disT;
+    //i++;
+if(i>0)soma/=2;
+    if(disT<400){return disT;} else {soma;}        
+  //}
+    //for(i=0;i<2;i++){
+     // soma+=vetor[i];
+     // }
+    
+    //return soma/2;
+}
+
+Ultrasonic::Ultrasonic(int TP, int EP)
+{
+   pinMode(TP,OUTPUT);
+   pinMode(EP,INPUT);
+   Trig_pin=TP;
+   Echo_pin=EP;
+}
+
+long Ultrasonic::Timing()
+{
+  digitalWrite(Trig_pin, LOW);
+  delayMicroseconds(2);
+  digitalWrite(Trig_pin, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(Trig_pin, LOW);
+  duration = pulseIn(Echo_pin,HIGH);
+  distacne_cm = duration /29 / 2 ;
+  return distacne_cm;
+}
+
+long Ultrasonic::Ranging(int sys)
+{
+  Timing();
+  distacne_cm = duration /29 / 2 ;
+  distance_inc = duration / 74 / 2;
+  if (sys)
+  return distacne_cm;
+  else
+  return distance_inc;
 }
 
 

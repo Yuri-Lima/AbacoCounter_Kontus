@@ -48,14 +48,30 @@ class ULTRA{
 public: 
 //Ultrassom
 //=============================================================================================================  
-  ULTRA(short int _echoPin,short int _trigPin);//Recebe os parametros das constantes
-  float distancia();//Recebe as amostras lidas de algo Exemplo.: distancia, temperatura...
+  ULTRA( int _echoPin, int _trigPin);//Recebe os parametros das constantes
+  int distancia();//Recebe as amostras lidas de algo Exemplo.: distancia, temperatura...
 //=============================================================================================================
 private:
 //Ultrasson
 //=============================================================================================================
- short int echoPin;
- short int trigPin;
+ int echoPin;
+ int trigPin;
+ double duracao,soma;
+ int disT,i;
+};
+
+class Ultrasonic
+{
+  public:
+    Ultrasonic(int TP, int EP);
+    long Timing();
+    long Ranging(int sys);
+
+    private:
+    int Trig_pin;
+    int Echo_pin;
+    long  duration,distacne_cm,distance_inc;
+    
 };
  
 #endif
