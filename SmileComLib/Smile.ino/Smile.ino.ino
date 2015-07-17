@@ -8,13 +8,13 @@
 LED rgb(8,7,6);//Seta os pinos do Led RGB
 //==========================================================
 //PID construtor 
-PID meuPid1(20, 0.02, 0.2);
+PID meuPid1(20, 0.02, 0.05);
 //PID meuPid2(3.2, 0.02, 0.05);
 #define SetPoint 20 //Seta em 10 Cm
 //========================================================== 
 //Ultrasson
-//ULTRA Ultrasson(10,9);//Passa o Echo e o Trig
-Ultrasonic Ultrasonic(9,10);
+ULTRA Ultrasson(10,9);//Passa o Echo e o Trig
+//Ultrasonic Ultrasonic(9,10);
 //==========================================================
 //Servo
 Servo myservo1;
@@ -30,19 +30,18 @@ void setup() {
 //  meuPid2.setSetPoint(SetPoint);                                                                                                                                                                                  
 }
 void loop() {                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     
-    flag=1;int x=-10;
-    Serial.println(abs(x));
-    Serial.println(Ultrasonic.Timing());
-      while(Ultrasonic.Timing()<40){
+    flag=1;
+    Serial.println(Ultrasson.distancia());
+      while(Ultrasson.distancia()<40){
       if(flag==1){
         myservo1.attach(12);//direito  
         myservo2.attach(11);//esquerdo
       }flag=0;
-      diT=Ultrasonic.Timing();
-      delayMicroseconds(10);
-      diT2=Ultrasonic.Timing();
-      if(diT<10||diT2<10){diT=10;diT2=10;}
-      diT==0?meuPid1.addNewSample(diT2):meuPid1.addNewSample(diT); 
+      diT=Ultrasson.distancia();
+      delayMicroseconds(20);
+      diT2=Ultrasson.distancia();
+      //if(diT<10||diT2<10){diT=10;diT2=10;}
+      diT!=0 || diT<400?meuPid1.addNewSample(diT):meuPid1.addNewSample(diT2); 
       // Manda as amostra de leitura da distancia para o objeto PID!
       //converto o retorno para inteiro e passa o paramentro
       //meuPid2.addNewSample(diT);
@@ -57,9 +56,9 @@ void loop() {
               
         if(diT<=25 && diT>=20){
           flag2=1;
-          while(Ultrasonic.Timing()<=25 && Ultrasonic.Timing()>=20){
+          while(Ultrasson.distancia()<=25 && Ultrasson.distancia()>=20){
             //digitalWrite(BLUE,1);
-            Serial.println(Ultrasonic.Timing());
+            Serial.println(Ultrasson.distancia());
             if(flag2==1){
               myservo1.detach();//direito 
               myservo2.detach();//esquerdo

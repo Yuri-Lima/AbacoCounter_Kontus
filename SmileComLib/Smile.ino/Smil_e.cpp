@@ -83,10 +83,11 @@ int ULTRA::distancia(){
     digitalWrite(trigPin, LOW);
     duracao=pulseIn(echoPin, HIGH);
     disT=duracao / 29.4 / 2;
-    soma+=disT;
+    //soma+=disT;
     //i++;
-if(i>0)soma/=2;
-    if(disT<400){return disT;} else {soma;}        
+//if(i>0)soma/=2;
+//return disT;
+    if(disT<400){return disT;}// else {soma;}        
   //}
     //for(i=0;i<2;i++){
      // soma+=vetor[i];
