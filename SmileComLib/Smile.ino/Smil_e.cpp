@@ -74,11 +74,11 @@ int ULTRA::distancia(){
     //seta o pino 12 com um pulso baixo "LOW" ou desligado ou ainda 0
     digitalWrite(trigPin, LOW);
     // delay de 2 microssegundos
-    delayMicroseconds(20);
+    delayMicroseconds(2);
     //seta o pino 12 com pulso alto "HIGH" ou ligado ou ainda 1
     digitalWrite(trigPin, HIGH);
     //delay de 10 microssegundos
-    delayMicroseconds(100);
+    delayMicroseconds(10);
     //seta o pino 12 com pulso baixo novamente
     digitalWrite(trigPin, LOW);
     duracao=pulseIn(echoPin, HIGH);
@@ -86,8 +86,8 @@ int ULTRA::distancia(){
     //soma+=disT;
     //i++;
 //if(i>0)soma/=2;
-//return disT;
-    if(disT<400){return disT;}// else {soma;}        
+return disT;
+    //if(disT<400){return disT;}// else {soma;}        
   //}
     //for(i=0;i<2;i++){
      // soma+=vetor[i];
@@ -95,36 +95,4 @@ int ULTRA::distancia(){
     
     //return soma/2;
 }
-
-Ultrasonic::Ultrasonic(int TP, int EP)
-{
-   pinMode(TP,OUTPUT);
-   pinMode(EP,INPUT);
-   Trig_pin=TP;
-   Echo_pin=EP;
-}
-
-long Ultrasonic::Timing()
-{
-  digitalWrite(Trig_pin, LOW);
-  delayMicroseconds(2);
-  digitalWrite(Trig_pin, HIGH);
-  delayMicroseconds(10);
-  digitalWrite(Trig_pin, LOW);
-  duration = pulseIn(Echo_pin,HIGH);
-  distacne_cm = duration /29 / 2 ;
-  return distacne_cm;
-}
-
-long Ultrasonic::Ranging(int sys)
-{
-  Timing();
-  distacne_cm = duration /29 / 2 ;
-  distance_inc = duration / 74 / 2;
-  if (sys)
-  return distacne_cm;
-  else
-  return distance_inc;
-}
-
 
