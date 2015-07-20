@@ -57,24 +57,8 @@ private:
  int echoPin;
  int trigPin;
  double duracao,soma;
- int disT,i;
+ double disT,i;
 };
-
-class Ultrasonic
-{
-  public:
-    Ultrasonic(int TP, int EP);
-    long Timing();
-    long Ranging(int sys);
-
-    private:
-    int Trig_pin;
-    int Echo_pin;
-    long  duration,distacne_cm,distance_inc;
-    
-};
- 
 #endif
-
 
 
