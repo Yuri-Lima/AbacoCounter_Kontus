@@ -1,83 +1,98 @@
-#include <Servo.h>
 #include "Smile.h"
-//==========================================================
-//Buzzer
-#define BUZ 5 string
-//==========================================================
-//RGB
-LED rgb(8,7,6);//Seta os pinos do Led RGB
-//==========================================================
-//PID construtor 
-PID meuPid1(20, 0.02, 0.05);
-//PID meuPid2(3.2, 0.02, 0.05);
-#define SetPoint 20 //Seta em 10 Cm
-//========================================================== 
-//Ultrasson
-ULTRA Ultrasson(10,9);//Passa o Echo e o Trig
-//Ultrasonic Ultrasonic(9,10);
-//==========================================================
-//Servo
-Servo myservo1;
-Servo myservo2; 
-double controlePwm1 = 1468;//90;//direita parado e quando diminui  velocidade
-double controlePwm2 = 1436;//86;//esquerda parado e quando aumetar ele vai pra frente e aumentar a velocidade 86+45
-double flag,flag2,diT=0,diT2=0,PID=0;
-double controlePwm11=0;
-double controlePwm22=0;
-void setup() {
-  Serial.begin(9600);
-  meuPid1.setSetPoint(SetPoint);//Passa o offset/ponto de referencia
-//  meuPid2.setSetPoint(SetPoint);                                                                                                                                                                                  
+
+//PID
+//=====================================================================================================================
+PID::PID(double _kP, double _kI, double _kD){//Recebe os parametros das constantes
+    kP = _kP;
+    kI = _kI;
+    kD = _kD;
+  }
+  
+  void PID::addNewSample(double _sample){//Recebe as amostras lidas de algo Exemplo.: distancia, temperatura...
+    sample = _sample;
+  }
+  
+  void PID::setSetPoint(double _setPoint){//Defini qual o offset/inicio
+    setPoint = _setPoint;
+  }
+  
+  double PID::process(){//retorna o valor calculado do PID
+    // Implementação P I D
+    error = setPoint<0? sample+setPoint : setPoint- sample;
+    float deltaTime = (millis() - lastProcess) / 1000.0;
+    lastProcess = millis();
+    
+    //P
+    P = error * kP;
+    
+    //I
+    I += (error * kI) * deltaTime;
+    
+    //D
+    D = (lastSample - sample) * kD / deltaTime;
+    lastSample = sample;
+    
+    // Soma tudo
+    //pid = P + I + D;
+    
+    return P + I + D;
+  }
+//LED rgb
+//=====================================================================================================================
+LED::LED(short int _reD,short int _bluE,short int _greeN){
+  PinRed=_reD;
+  PinBlue=_bluE;
+  PinGreen=_greeN;
+  pinMode(PinRed, OUTPUT);pinMode(PinBlue, OUTPUT);pinMode(PinGreen, OUTPUT);
+} 
+void LED::statusRed(short int _statusR){
+  short int statusR=_statusR;
+  statusR!=0?digitalWrite(PinRed,1):digitalWrite(PinRed,0);
 }
-void loop() {                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     
-    flag=1;
-    Serial.println(Ultrasson.distancia());
-      while(Ultrasson.distancia()<40){
-      if(flag==1){
-        myservo1.attach(12);//direito  
-        myservo2.attach(11);//esquerdo
-      }flag=0;
-      diT=Ultrasson.distancia();
-      delayMicroseconds(20);
-      diT2=Ultrasson.distancia();
-      //if(diT<10||diT2<10){diT=10;diT2=10;}
-      diT!=0 || diT<400?meuPid1.addNewSample(diT):meuPid1.addNewSample(diT2); 
-      // Manda as amostra de leitura da distancia para o objeto PID!
-      //converto o retorno para inteiro e passa o paramentro
-      //meuPid2.addNewSample(diT);
-      // Converte para controle
-      PID=meuPid1.process();
-      controlePwm11 = (PID + controlePwm1);//Direita
-      controlePwm22 = (abs(PID - controlePwm2));//Esquerda
-      myservo1.writeMicroseconds(int(controlePwm11));// direita quanto menor maior velocidade
-      myservo2.writeMicroseconds(int(controlePwm22)+10);// esquerda
-       Serial.print(PID);Serial.print(" - ");Serial.print(int(controlePwm11));Serial.print(" - ");Serial.print(int(controlePwm22));Serial.print(" - ");Serial.print(diT);Serial.print(" - ");Serial.println(diT2);
-      // Intervalo para desativar os pinos do servo     
-              
-        if(diT<=25 && diT>=20){
-          flag2=1;
-          while(Ultrasson.distancia()<=25 && Ultrasson.distancia()>=20){
-            //digitalWrite(BLUE,1);
-            Serial.println(Ultrasson.distancia());
-            if(flag2==1){
-              myservo1.detach();//direito 
-              myservo2.detach();//esquerdo
-              controlePwm11=0;
-              controlePwm22=0;
-              flag=1;
-            }flag2=0;
-            //controlePwm1=direita;
-            //controlePwm2=esquerda;
-          }
-       }
-       controlePwm11=0;
-       controlePwm22=0;
-    }
-      //rgb.statusRed(0);
-      //rgb.statusBlue(0);
-      //rgb.statusGreen(0);
-     myservo1.detach();//direito 
-     myservo2.detach();//esquerdo    
+void LED::statusBlue(short int _statusB){
+  short int statusB=_statusB;
+  statusB!=0?digitalWrite(PinBlue,1):digitalWrite(PinBlue,0);
+}
+void LED::statusGreen(short int _statusG){
+  short int statusG=_statusG;
+  statusG!=0?digitalWrite(PinGreen,1):digitalWrite(PinGreen,0);
 }
 
+//Ultrasson
+//=====================================================================================================================
+ULTRA::ULTRA(int _echoPin,int _trigPin){
+  echoPin=_echoPin;
+  trigPin=_trigPin;
+  pinMode(echoPin, INPUT);pinMode(trigPin, OUTPUT);
+} 
+int ULTRA::distancia(){
+  disT=duracao=i=0;
+  //for(i=0;i<2;i++){
+      //vetor[i]=0;
+      //}
+  //for(i=0;i<2;i++){
+    //seta o pino 12 com um pulso baixo "LOW" ou desligado ou ainda 0
+    digitalWrite(trigPin, LOW);
+    // delay de 2 microssegundos
+    delayMicroseconds(2);
+    //seta o pino 12 com pulso alto "HIGH" ou ligado ou ainda 1
+    digitalWrite(trigPin, HIGH);
+    //delay de 10 microssegundos
+    delayMicroseconds(10);
+    //seta o pino 12 com pulso baixo novamente
+    digitalWrite(trigPin, LOW);
+    duracao=pulseIn(echoPin, HIGH);
+    disT=duracao / 29.4 / 2;
+    //soma+=disT;
+    //i++;
+//if(i>0)soma/=2;
+return disT;
+    //if(disT<400){return disT;}// else {soma;}        
+  //}
+    //for(i=0;i<2;i++){
+     // soma+=vetor[i];
+     // }
+    
+    //return soma/2;
+}
 
