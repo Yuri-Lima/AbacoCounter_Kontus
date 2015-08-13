@@ -17,10 +17,10 @@ int ULTRA::distancia() {
   delayMicroseconds(10);
   //seta o pino 12 com pulso baixo novamente
   digitalWrite(trigPin, LOW);
-  duracao = pulseIn(echoPin, HIGH,1500);
+  duracao = pulseIn(echoPin, HIGH,1000);
   disT = duracao / 58; 
   if(disT == 0){
-    disT = 999;
+    disT = 999;//3E7->999
   }
   return disT;
 }

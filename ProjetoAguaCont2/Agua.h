@@ -18,5 +18,4 @@ private:
  double duracao=0;
  double disT=0;
 };
-
 #endif

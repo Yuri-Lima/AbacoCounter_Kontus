@@ -1,12 +1,17 @@
 #include "Agua.h"
-#include <SPI.h>
 #include <SD.h>
-#include <DS1307.h>
+#include <SPI.h>
 #include <Wire.h>
+#include <EEPROM.h>
+#include <DS1307.h>
+#include <String.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
-#include <String.h>
-String diadasemana2,horas2,minutos2,diadomes2,mes2,ano2;
+
+String diadasemana2, horas2, minutos2, diadomes2, mes2, ano2;
+//================================================
+//EEPROM
+#define addr 0
 //================================================
 //OLED
 #define OLED_RESET 8
@@ -16,6 +21,7 @@ Adafruit_SSD1306 display(OLED_RESET);
 #define DS1307_ADDRESS 0x68// Modulo RTC no endereco 0x68
 int lastMinutos = 0;
 int lastHoras = 0;
+byte horaZero = 23;//Horario para a variavel contAgua ZERAR
 byte zero = 0x00;
 //================================================
 //Sd Card
@@ -32,14 +38,14 @@ unsigned int countAgua = 0x00; //Contador de agua limite de 65.535 2 bytes
 //Ultrasson
 #define TRIG 2
 #define ECO 3
-#define detecMax 20 //Limite de detecção em cm
+#define detecMax 20 //Limite de detecção em 20 cm
 #define filtro 10 //Define a quantidade minima de leituras para distinguir um objeto
 #define timeFiltro 10
 ULTRA ultra(ECO, TRIG); //Objeto da classe ultra
 
 void setup() {
-  //SelecionaDataeHora();
   Wire.begin();
+  SelecionaDataeHora();//tem que ficar abaixo do Wire.begin é ativo apenas para mudar data e hora
   Serial.begin(9600);
   display.begin(SSD1306_SWITCHCAPVCC, 0x3C);
   display.clearDisplay();
@@ -85,6 +91,7 @@ void setup() {
 
 void loop() {
   if (flagSD != 0x00) {
+    //===================================================================
     // Le os valores (data e hora) do modulo DS1307
     Wire.beginTransmission(DS1307_ADDRESS);
     Wire.write(zero);
@@ -97,8 +104,10 @@ void loop() {
     int diadomes = ConverteparaDecimal(Wire.read());
     int mes = ConverteparaDecimal(Wire.read());
     int ano = ConverteparaDecimal(Wire.read());
-    switch (diadasemana)
-    {
+    //====================================================================
+    if(horas == 23){ countAgua =0x00; EEPROM.write(addr, addr);}else{ countAgua = EEPROM.read(addr);}//Rotina para saber se caiu energia ou mudou o dia
+
+    switch (diadasemana) {
       case 0: diadasemana2 = "Dom";
         break;
       case 1: diadasemana2 = "Seg";
@@ -112,29 +121,20 @@ void loop() {
       case 5: diadasemana2 = "Sex";
         break;
       case 6: diadasemana2 = "Sab";
+        break;
     }
-    //if (horas < 10) {horas2=0+String(horas);}
-      count = 0x00;
     flagAgua = 0x00;
     while (ultra.distancia() < detecMax && ultra.distancia() != 999) {
       count++;
-      flagAgua = 0x01;
+      flagAgua = 0x01;//verificações
     }
     if (count > filtro && flagAgua == 0x01 && ultra.distancia() == 999) {
-      countAgua += 0x01;
-      arquivo = SD.open("Cadastro.csv", FILE_WRITE);
-      arquivo.seek(0x00);
-      //int c=arquivo.position();Serial.println(c);
-      arquivo.print("Quantidade: ");
-      arquivo.println(countAgua);
-      arquivo.print("Horario: ");
-      arquivo.print(horas); arquivo.print(":"); arquivo.println(minutos);
-      arquivo.print("Data: "); arquivo.print(diadasemana2); arquivo.print("  --  ");
-      arquivo.print(diadomes); arquivo.print("/"); arquivo.print(mes); arquivo.print("/"); arquivo.print(ano);
-      arquivo.close();
+      countAgua += 0x01;//conta as garrafas
+      WriteSD(horas,  minutos, segundos, diadomes, mes, ano, countAgua);//passa os parametros para escrita no SD
+
+
     }
     count = 0x00;
-    Serial.println(countAgua);
     display.setTextSize(4);
     display.setTextColor(WHITE);
     display.setCursor(20, 0);
@@ -143,18 +143,14 @@ void loop() {
     display.display(); display.clearDisplay();
     delay(timeFiltro);
   }
-
-
-
 }
 
-void SelecionaDataeHora()   //Seta a data e a hora do DS1307
-{
+void SelecionaDataeHora() { //Seta a data e a hora do DS1307
   byte segundos = 00; //Valores de 0 a 59
-  byte minutos = 17; //Valores de 0 a 59
-  byte horas = 12; //Valores de 0 a 23
+  byte minutos = 11; //Valores de 0 a 59
+  byte horas = 0; //Valores de 0 a 23
   byte diadasemana = 4; //Valores de 0 a 6 - 0=Domingo, 1 = Segunda, etc.
-  byte diadomes = 10; //Valores de 1 a 31
+  byte diadomes = 13; //Valores de 1 a 31
   byte mes = 8; //Valores de 1 a 12
   byte ano = 15; //Valores de 0 a 99
   Wire.beginTransmission(DS1307_ADDRESS);
@@ -171,19 +167,33 @@ void SelecionaDataeHora()   //Seta a data e a hora do DS1307
   Wire.write(ConverteParaBCD(ano));
   Wire.write(zero);
   Wire.endTransmission();
+  Serial.print("entrou");
 }
 
-byte ConverteParaBCD(byte val)
-{
+byte ConverteParaBCD(byte val) {
   //Converte o número de decimal para BCD
   return ( (val / 10 * 16) + (val % 10) );
 }
 
-byte ConverteparaDecimal(byte val)
-{
+byte ConverteparaDecimal(byte val) {
   //Converte de BCD para decimal
   return ( (val / 16 * 10) + (val % 16) );
 }
+void WriteSD(int horas, int minutos, int segundos, int diadomes, int mes, int ano, int countAgua) {
+  EEPROM.write(0, countAgua);
+  arquivo = SD.open("Cadastro.csv", FILE_WRITE);//escreve no SD
+  arquivo.seek(0x00);
+  arquivo.print("Quantidade: ");
+  //int linha=arquivo.seek(0x00);Serial.println(linha);
+  arquivo.println(countAgua);
+  arquivo.print("Horario: ");
+  arquivo.print(horas); arquivo.print(":"); arquivo.println(minutos);
+  arquivo.print("Data: "); arquivo.print(diadasemana2); arquivo.print("  --  ");
+  arquivo.print(diadomes); arquivo.print("/"); arquivo.print(mes); arquivo.print("/"); arquivo.print(ano);
+  arquivo.close();
+}
+
+
 /*
 // Acrescenta o 0 (zero) se a hora for menor do que 10
   if (horas < 10)display.print("0");
