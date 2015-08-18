@@ -65,7 +65,7 @@ ULTRA ultra(ECO, TRIG); //Objeto da classe ultra
 
 void setup() {
   Wire.begin();
-  //SelecionaDataeHora();//Tem que ficar abaixo do Wire.begin é ativado apenas para mudar data e hora
+ //SelecionaDataeHora();//Tem que ficar abaixo do Wire.begin é ativado apenas para mudar data e hora
   //==========================================================================================================
   Ethernet.begin(mac, ip);
   server.begin();
@@ -450,8 +450,8 @@ int sdCard(int horas, int minutos, int segundos, int diadomes, int mes, int ano,
 //==========================================================================================================
 void SelecionaDataeHora() { //Seta a data e a hora do DS1307
   byte segundos = 00; //Valores de 0 a 59
-  byte minutos = 28; //Valores de 0 a 59
-  byte horas = 00; //Valores de 0 a 23
+  byte minutos = 39; //Valores de 0 a 59
+  byte horas = 01; //Valores de 0 a 23
   byte diadasemana = 2; //Valores de 0 a 6 - 0=Domingo, 1 = Segunda, etc.
   byte diadomes = 18; //Valores de 1 a 31
   byte mes = 8; //Valores de 1 a 12
