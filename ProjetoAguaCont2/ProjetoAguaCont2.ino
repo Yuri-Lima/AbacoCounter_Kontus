@@ -22,16 +22,21 @@ String diadasemana2;
 //================================================
 //EEPROM
 #define addr 0x00
-unsigned int j = 0x00;
+unsigned int somaPosEEpron = 0x00;//Guarda o somatorio dos numeros guardados no endereços da EEPRON
+unsigned int endEEpron = 0x01, A = 0x00; //Guarda os ultimos endereços da EEPRON na posição ZERO
 unsigned int posEpron[255];
+boolean flagEEpron = true, flagEndPron = true, flag2 = true;
 //================================================
 //OLED
 #define OLED_RESET 8
 Adafruit_SSD1306 display(OLED_RESET);
+#define delayRobotOne 500
+#define delayCartaoIniciado 500
 //================================================
 //RTC
 #define DS1307_ADDRESS 0x68// Modulo RTC no endereco 0x68
-int lastHoras = 0; //Guarda a ultima leitura da hora
+#define timeERRO 20//Limita o tempo para zerar tudo!
+unsigned int lastHoras = 0; //Guarda a ultima leitura da hora
 byte horaZero = 23;//Horario para a variavel contAgua ZERAR
 byte zero = 0x00; //Serve para recpção de dados no CI do RTC
 //================================================
@@ -39,14 +44,16 @@ byte zero = 0x00; //Serve para recpção de dados no CI do RTC
 File arquivo; // Objeto da classe File
 char* cleanCel = "";
 byte flagSD = 0x00; //Flag de validação do SD-CARD
+boolean flagWriteSDEE = true;
 //================================================
 //Contadores
 //unsigned long int 0 - 4.294.967.295 4 bytes
+#define limiteCont 65000//Limita a contagem
+short int flag = 1;
 unsigned int count = 0x00; // Contador do filtro limite de 65.535 2 bytes
 byte flagAgua = 0x00; //Sinalizador de estado logico alto
 unsigned int countAgua = 0x00; //Contador de agua limite de 65.535 2 bytes
 unsigned int somaAgua = 0x00; //Contador de agua limite de 65.535 2 bytes
-int flag=1;
 //================================================
 //Ultrasson
 #define TRIG 2
@@ -66,7 +73,6 @@ void setup() {
     pinMode(b, OUTPUT);
   }
   //==========================================================================================================
-
   Serial.begin(9600);
   display.begin(SSD1306_SWITCHCAPVCC, 0x3C);
   display.clearDisplay();
@@ -76,7 +82,7 @@ void setup() {
   display.clearDisplay();
   display.print("Robot One");
   display.display();
-  delay(2000); display.clearDisplay();
+  delay(delayRobotOne); display.clearDisplay();
   //==========================================================================================================
   //Verifica de tem SD-CARD
   if (!SD.begin(4)) {
@@ -104,15 +110,25 @@ void setup() {
     display.clearDisplay();
     display.print("Cartao SD Iniciado");
     display.display();
-    delay(2000); display.clearDisplay(); display.clearDisplay();
+    delay(delayCartaoIniciado); display.clearDisplay(); display.clearDisplay();
   }
 }
 //Fim Setup
 
 void loop() {
-  Serial.println(analogRead(A5));
+  if (flagSD != 0x01) {
+    // Le os valores (data e hora) do modulo DS1307
+    Wire.beginTransmission(DS1307_ADDRESS);
+    Wire.write(zero);
+    Wire.endTransmission();
+    Wire.requestFrom(DS1307_ADDRESS, 7);
+    int segundos = ConverteparaDecimal(Wire.read());
+    erro(segundos);
+  }
   if (flagSD != 0x00) {
+    //Inicio RTC
     //==========================================================================================================
+    //----------------------------------------------------------------------------------------------------------
     // Le os valores (data e hora) do modulo DS1307
     Wire.beginTransmission(DS1307_ADDRESS);
     Wire.write(zero);
@@ -125,7 +141,29 @@ void loop() {
     int diadomes = ConverteparaDecimal(Wire.read());
     int mes = ConverteparaDecimal(Wire.read());
     int ano = ConverteparaDecimal(Wire.read());
+
+    switch (diadasemana) {
+      case 0: diadasemana2 = "Domingo";
+        break;
+      case 1: diadasemana2 = "Segunda";
+        break;
+      case 2: diadasemana2 = "Terca";
+        break;
+      case 3: diadasemana2 = "Quarta";
+        break;
+      case 4: diadasemana2 = "Quinta";
+        break;
+      case 5: diadasemana2 = "Sexta";
+        break;
+      case 6: diadasemana2 = "Sabado";
+        break;
+    }
+    //Fim RTC
+    //----------------------------------------------------------------------------------------------------------
     //==========================================================================================================
+    //Inicio Ethernet
+    //==========================================================================================================
+    //----------------------------------------------------------------------------------------------------------
     //Rotina para saber se caiu energia ou mudou o dia
     EthernetClient client = server.available();   // Verifica se tem alguém conectado
     if (client) {
@@ -189,8 +227,10 @@ void loop() {
             client.print("<center> <button onclick=\"window.location.href='http://arduinoyuri.dyndns.org/externo/0001'\">\0</button> > Codigo: 1011 > ");
 
             if (arrayEstado[0]) {
-              //countAgua = 0x00;
-              //for (int i = 0; i < 255; i++){EEPROM.write(i, addr);}
+              countAgua = 0x00;
+              somaPosEEpron = 0x00;
+              EEPROM.write(0, 1);//Inicializador que vai lembrar a ultima posição da contagem. So ativar uma vez e depois comentar
+              for (int i = 0; i < 255; i++) EEPROM.write(i, addr);
               client.print("<B><span style=\"color: #000000;\">");
               client.print("As garrafas foram zeradas - ");
               client.print("</span></B></left>");
@@ -215,7 +255,7 @@ void loop() {
             client.print("<B><span style=\"color: #000000;\">");
             client.print(" QUANTIDADE DE GARRAFAS: ");
             client.print("<font size=4>");
-            client.println(somaAgua);
+            client.println(somaPosEEpron);
             client.print("<B><span style=\"color: #FF0000;\">");
             //client.print("*C </font></font></center>");
             client.print("</span></B></center>");
@@ -236,50 +276,101 @@ void loop() {
       delay(3);// Espera um tempo para o navegador receber os dados
       client.stop(); // Fecha a conexão
     } //Fecha if(client)
+    //Fim Ethernet
+    //----------------------------------------------------------------------------------------------------------
     //==========================================================================================================
+    //Inicio EEPROM Energia
+    //==========================================================================================================
+    //-----------------------------------------------------------------------------------------------------------
     //Rotina para saber se caiu energia ou mudou o dia
     if (horas == 23) {
       countAgua = 0x00;
-      for(int i=0;i<j;i++) EEPROM.write(j, addr);//zera todos os endereços da EEPRON
-    } else {
-      countAgua = EEPROM.read(j);
-      
+      for (int i = 0; i < 255; i++) EEPROM.write(i, addr); //zera todos os endereços da EEPRON
     }
-
     //==========================================================================================================
-    switch (diadasemana) {
-      case 0: diadasemana2 = "Domingo";
-        break;
-      case 1: diadasemana2 = "Segunda";
-        break;
-      case 2: diadasemana2 = "Terca";
-        break;
-      case 3: diadasemana2 = "Quarta";
-        break;
-      case 4: diadasemana2 = "Quinta";
-        break;
-      case 5: diadasemana2 = "Sexta";
-        break;
-      case 6: diadasemana2 = "Sabado";
-        break;
+    //----------------------------------------------------------------------------------------------------------
+    //Iniciadores true para zerar tudo
+    flag2 = false;
+    if (flag2) {
+      EEPROM.write(0, 1);//Inicializador que vai lembrar a ultima posição da contagem. So ativar uma vez e depois comentar
+      for (int i = 0; i < 255; i++) EEPROM.write(i, addr);
     }
+    //----------------------------------------------------------------------------------------------------------
+    //==========================================================================================================
+    if (flagEEpron == true) {//Faz essa rotina ativar apenas uma vez a cada rest ou queda de luz
+      for (int i = 1; i < 255; i++) {//i==1 pois a posição zero esta reservada
+        posEpron[i] = EEPROM.read(i);//Realizar a leitura dos endereços da EEPRON e guarda no vetor
+        //Serial.println(posEpron[i]);
+      }
+      for (int i = 1; i < 255; i++) {
+        if (posEpron[i] > 0) {
+          somaPosEEpron += posEpron[i];
+          Serial.print("i= "); Serial.print(i); Serial.print(" - "); Serial.print("endEEpron2= ");
+          Serial.println(EEPROM.read(0)); endEEpron = i; //Lembra onde o endereço que parou a contagem
+        }//Soma os vetores acima de zero em x
+
+        if (posEpron[i] > 0 && posEpron[i] < 255) {
+          countAgua = posEpron[i];
+          endEEpron = i;
+        }
+        if (posEpron[i] == 0 && EEPROM.read(i - 1) == 255) {
+          countAgua = 0;
+          endEEpron = i;
+        }
+      }
+    } flagEEpron = false;
+    Serial.print(endEEpron); Serial.print(" - "); Serial.print(countAgua); Serial.print(" - "); Serial.println(somaPosEEpron);
+    //Fim EEPRON
+    //----------------------------------------------------------------------------------------------------------
+    //==========================================================================================================
+    //Inicio Ultrasson
+    //==========================================================================================================
+    //----------------------------------------------------------------------------------------------------------
+    //Acionamento de contagem pelo ultrasson
     flagAgua = 0x00;//flag de verificações
     while (ultra.distancia() < detecMax && ultra.distancia() != 999) {
       count++;//até atingir uma quantidade de leituras pre estabelecida
       flagAgua = 0x01;//flag de verificações
     }
     if (count > filtro && flagAgua == 0x01 && ultra.distancia() == 999) {
-      countAgua += 0x01;//conta as garrafas
-      WriteSD(horas,  minutos, segundos, diadomes, mes, ano, countAgua);//Passa os parametros para escrita no SD
+      somaPosEEpron++;
+      countAgua++;//conta as garrafas
+      if (somaPosEEpron == limiteCont)flagSD = 0x00;//Para todo o processo e vai para erro();
+      WriteSDEE(horas,  minutos, segundos, diadomes, mes, ano, countAgua);//Passa os parametros para escrita no SD
     }
     count = 0x00;//zera o filtro
+    //Fim Ultrasson
+    //----------------------------------------------------------------------------------------------------------
     //==========================================================================================================
+    //Imprimi Display
+    //==========================================================================================================
+    //----------------------------------------------------------------------------------------------------------
     //Imprime no display a contagem
-    display.setTextSize(4);
-    display.setTextColor(WHITE);
-    display.setCursor(40, 0);
-    display.clearDisplay();
-    display.print(somaAgua);
+    if (somaPosEEpron <= 999) {
+      display.setTextSize(4);
+      display.setTextColor(WHITE);
+      display.setCursor(40, 0);
+      display.clearDisplay();
+      display.print(somaPosEEpron);
+    }
+    //==========================================================================================================
+    else if (somaPosEEpron > 999) { //Deslocamento dos numeros no display
+      //==========================================================================================================
+      display.setTextSize(4);
+      display.setTextColor(WHITE);
+      display.setCursor(25, 0);
+      display.clearDisplay();
+      display.print(somaPosEEpron);
+    }
+    //==========================================================================================================
+    else if (somaPosEEpron > 9999) { //Deslocamento dos numeros no display
+      //==========================================================================================================
+      display.setTextSize(3);
+      display.setTextColor(WHITE);
+      display.setCursor(30, 0);
+      display.clearDisplay();
+      display.print(somaPosEEpron);
+    }
     //==========================================================================================================
     //Data
     display.setTextSize(1);
@@ -319,19 +410,54 @@ void loop() {
   }
 }
 //Fim do Loop
-
+//==========================================================================================================
+//----------------------------------------------------------------------------------------------------------
+//Controle de EEPRON + SD escrita
+void WriteSDEE(int horas, int minutos, int segundos, int diadomes, int mes, int ano, int countAgua) {
+  if (flagWriteSDEE == true) {
+    sdCard(horas, minutos, segundos, diadomes, mes, ano, countAgua);
+    //Rotina que salva no primeiro endereço da EEPRON==1 quando x é menor que 255
+    if (countAgua <= 255  && countAgua > 0)EEPROM.write(endEEpron, countAgua);//Na posição zero ja tem que esta gravado a posição inicial de leitura
+    if (countAgua > 254) {
+      endEEpron++;
+      Serial.print("endEEpron: ");
+      Serial.println(endEEpron);
+      EEPROM.write(0, endEEpron);//coloca a posição j==1 no endereço 0 da EEPRON
+      countAgua = 0x00;
+      somaPosEEpron = 0x00;
+      EEPROM.write(endEEpron, countAgua);//Pra validar uma das condição if da EEPRON salva ZERO no proximo endereço
+      flagEEpron = 1;
+    } Serial.print(endEEpron); Serial.print(" - "); Serial.print(countAgua); Serial.print(" - "); Serial.println(somaPosEEpron);
+  }
+}
+//==========================================================================================================
+//Salva no SD-CARD
+int sdCard(int horas, int minutos, int segundos, int diadomes, int mes, int ano, int countAgua) {
+  arquivo = SD.open("LogData.csv", FILE_WRITE);//escreve no SD
+  lastHoras = horas;//Guarda a ultima hora para depois gravar no LogHora de hora em hora
+  if (horas - lastHoras == 1)arquivo = SD.open("LogHora.csv", FILE_WRITE); //escreve no SD
+  arquivo.seek(0x00);
+  arquivo.print("Quantidade: ");
+  //int linha=arquivo.seek(0x00);Serial.println(linha);
+  arquivo.println(somaPosEEpron);
+  arquivo.print("Horario: ");
+  arquivo.print(horas); arquivo.print(":"); arquivo.println(minutos);
+  arquivo.print("Data: "); arquivo.print(diadasemana2); arquivo.print("  --  ");
+  arquivo.print(diadomes); arquivo.print("/"); arquivo.print(mes); arquivo.print("/"); arquivo.print(ano);
+  arquivo.close();
+  return 1;
+}
 //==========================================================================================================
 void SelecionaDataeHora() { //Seta a data e a hora do DS1307
   byte segundos = 00; //Valores de 0 a 59
-  byte minutos = 6; //Valores de 0 a 59
-  byte horas = 10; //Valores de 0 a 23
-  byte diadasemana = 4; //Valores de 0 a 6 - 0=Domingo, 1 = Segunda, etc.
-  byte diadomes = 13; //Valores de 1 a 31
+  byte minutos = 28; //Valores de 0 a 59
+  byte horas = 00; //Valores de 0 a 23
+  byte diadasemana = 2; //Valores de 0 a 6 - 0=Domingo, 1 = Segunda, etc.
+  byte diadomes = 18; //Valores de 1 a 31
   byte mes = 8; //Valores de 1 a 12
   byte ano = 15; //Valores de 0 a 99
   Wire.beginTransmission(DS1307_ADDRESS);
   Wire.write(zero); //Stop no CI para que o mesmo possa receber os dados
-
   //As linhas abaixo escrevem no CI os valores de
   //data e hora que foram colocados nas variaveis acima
   Wire.write(ConverteParaBCD(segundos));
@@ -343,48 +469,61 @@ void SelecionaDataeHora() { //Seta a data e a hora do DS1307
   Wire.write(ConverteParaBCD(ano));
   Wire.write(zero);
   Wire.endTransmission();
-  Serial.print("entrou");
 }
-
+//==========================================================================================================
+//Conversão
+//==========================================================================================================
 byte ConverteParaBCD(byte val) {
   //Converte o número de decimal para BCD
   return ( (val / 10 * 16) + (val % 10) );
 }
+//==========================================================================================================
+//Conversão
+//==========================================================================================================
 byte ConverteparaDecimal(byte val) {
   //Converte de BCD para decimal
   return ( (val / 16 * 10) + (val % 16) );
 }
-void WriteSD(int horas, int minutos, int segundos, int diadomes, int mes, int ano, int countAgua) {
-  EEPROM.write(j, countAgua);
-  if(countAgua==255){j++;countAgua=0;} //if(j>255){j=0x00;erro();}
-  for(int i=0;i<=j;i++){somaAgua+=int(EEPROM.read(i));}
-  arquivo = SD.open("LogData.csv", FILE_WRITE);//escreve no SD
-  lastHoras = horas;
-  if (horas - lastHoras == 1)arquivo = SD.open("LogHora.csv", FILE_WRITE); //escreve no SD
-  arquivo.seek(0x00);
-  arquivo.print("Quantidade: ");
-  //int linha=arquivo.seek(0x00);Serial.println(linha);
-  arquivo.println(somaAgua);
-  arquivo.print("Horario: ");
-  arquivo.print(horas); arquivo.print(":"); arquivo.println(minutos);
-  arquivo.print("Data: "); arquivo.print(diadasemana2); arquivo.print("  --  ");
-  arquivo.print(diadomes); arquivo.print("/"); arquivo.print(mes); arquivo.print("/"); arquivo.print(ano);
-  arquivo.close();
-}
-void erro() {
-  display.setTextSize(1);
+//==========================================================================================================
+void erro(int segundos) {
+  int F=0,somaSegundos=0;
+  //Imprime no display a contagem
+  if (limiteCont <= 999) {
+    display.setTextSize(4);
+    display.setTextColor(WHITE);
+    display.setCursor(40, 0);
+    display.clearDisplay();
+    display.print(limiteCont);
+  }
+  //==========================================================================================================
+  else if (limiteCont > 999) { //Deslocamento dos numeros no display
+    //==========================================================================================================
+    display.setTextSize(4);
+    display.setTextColor(WHITE);
+    display.setCursor(25, 0);
+    display.clearDisplay();
+    display.print(limiteCont);
+  }
+  //==========================================================================================================
+  else if (limiteCont > 9999) { //Deslocamento dos numeros no display
+    //==========================================================================================================
+    display.setTextSize(3);
+    display.setTextColor(WHITE);
+    display.setCursor(30, 0);
+    display.clearDisplay();
+    display.print(limiteCont);
+  }
+  display.setTextSize(2);
   display.setTextColor(WHITE);
-  display.setCursor(20, 0);
-  display.println("Erro de contagem");
-  display.setCursor(35, 10);
-  display.print("65.025");
+  display.setCursor(25, 30);
+  display.print("Contagem");
+  display.setTextSize(2);
+  display.setTextColor(WHITE);
+  display.setCursor(30, 50);
+  display.print("Maxima");
   display.display();
-  display.setTextSize(1);
-  display.setTextColor(WHITE);
-  display.setCursor(30, 40);
-  display.println("Diagnostico: ");
-  display.setCursor(25, 50);
-  display.print("Contagem Maxima");
-  display.display(); delay(10000); display.clearDisplay();
-
+}
+void zeraTUDO() {
+  EEPROM.write(0, 1);//Inicializador que vai lembrar a ultima posição da contagem. So ativar uma vez e depois comentar
+  for (int i = 0; i < 255; i++) EEPROM.write(i, addr);
 }
