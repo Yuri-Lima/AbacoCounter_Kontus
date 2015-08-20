@@ -24,3 +24,4 @@ int ULTRA::distancia() {
   }
   return disT;
 }
+
