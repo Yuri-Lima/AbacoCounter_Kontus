@@ -57,16 +57,17 @@ byte countAgua = 0x00; //Contador de agua limite de 65.535 2 bytes
 #define filtro 20 //Define a quantidade minima de leituras para distinguir um objeto
 #define timeFiltro 10 //Intervalos entre leituras que vai influenciar no filtro
 ULTRA ultra(ECO, TRIG); //Objeto da classe ultra
-
+EthernetClient client;
 void setup() {
   //Serial.begin(9600);
   //I2C
+  short e;
   Wire.begin();
   //SelecionaDataeHora();//Tem que ficar abaixo do Wire.begin é ativado apenas para mudar data e hora
   //==========================================================================================================
   //Ethernet
   Ethernet.begin(mac, ip);
-  server.begin();
+  //server.begin();
   //==========================================================================================================
   //OLED
   display.begin(SSD1306_SWITCHCAPVCC, 0x3C);
@@ -111,6 +112,7 @@ void setup() {
 //Fim Setup
 
 void loop() {
+  
   //Inicio RTC
   //==========================================================================================================
   //----------------------------------------------------------------------------------------------------------
@@ -124,7 +126,7 @@ void loop() {
     erro(segundos);
   }
   if (flagSD != 0x00) {
-    switch (diadasemana) {
+      switch (diadasemana) {
       case 0: diadasemana2 = "Domingo";
         break;
       case 1: diadasemana2 = "Segunda";
@@ -146,6 +148,7 @@ void loop() {
     //Inicio Ethernet
     //==========================================================================================================
     //----------------------------------------------------------------------------------------------------------
+    
     //Rotina para saber se caiu energia ou mudou o dia
     EthernetClient client = server.available();   // Verifica se tem alguém conectado
     if (client) {
@@ -195,7 +198,7 @@ void loop() {
             if (horas < 10) {
               client.print("0");
               client.print(horas);
-            } else client.print(horas);
+            }else client.print(horas);
             client.print(":");
             if (minutos < 10) {
               client.print("0");
@@ -206,7 +209,7 @@ void loop() {
             client.print("<BR>");
             estadoip == 1 ?
             client.print("<center> <button onclick=\"window.location.href='http://192.168.25.177/interno/0001'\">\0</button> > Codigo: 1011 > ") :
-            client.print("<center> <button onclick=\"window.location.href='http://arduinoyuri.dyndns.org/externo/0001'\">\0</button> > Codigo: 1011 > ");
+            client.print("<center> <button onclick=\"window.location.href='http://arduinoyuri.dyndns.org/externo/0001'\">\0</button> > Codigo: 1011 >");
 
             if (arrayEstado[0]) {
               countAgua = 0x00;
