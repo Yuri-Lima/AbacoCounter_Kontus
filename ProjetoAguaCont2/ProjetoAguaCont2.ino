@@ -72,6 +72,7 @@ void setup() {
   //OLED
   display.begin(SSD1306_SWITCHCAPVCC, 0x3C);
   display.clearDisplay();
+  display.setRotation(2);//Rotação do display.
   display.setTextSize(2);
   display.setTextColor(WHITE);
   display.setCursor(15, 0);
@@ -81,44 +82,35 @@ void setup() {
   delay(delayRobotOne); display.clearDisplay();
   //==========================================================================================================
   //Verifica de tem SD-CARD
-  while (!SD.begin(4)) {
-    display.setTextSize(1);
-    display.setTextColor(WHITE);
-    display.setCursor(20, 0);
-    display.println("Erro ao iniciar");
-    display.setCursor(35, 10);
-    display.print("cartao SD");
-    display.display();
-    display.setTextSize(1);
-    display.setTextColor(WHITE);
-    display.setCursor(30, 40);
-    display.println("Diagnostico: ");
-    display.setCursor(25, 50);
-    display.print("Sem cartao SD");
-    display.display();
-    //return;
+  while (!SD.begin(53)) {
+    sdCARD(0);//"0" para informa na tela de inicialização
   }
-    display.clearDisplay();
-    flagSD = 0x01;
-    display.setTextSize(2);
-    display.setTextColor(WHITE);
-    display.setCursor(10, 0);
-    display.clearDisplay();
-    display.print("Cartao SD Iniciado");
-    display.display();
-    delay(delayCartaoIniciado); display.clearDisplay(); display.clearDisplay();
-  
+  display.clearDisplay();
+  flagSD = 0x01;
+  display.setTextSize(2);
+  display.setTextColor(WHITE);
+  display.setCursor(10, 0);
+  display.clearDisplay();
+  display.print("Cartao SD Iniciado");
+  display.display();
+  delay(delayCartaoIniciado); display.clearDisplay(); display.clearDisplay();
+
 }
 //Fim Setup
 
 void loop() {
-  
+  //Atualização permanente do SD-CARD.
+  //==========================================================================================================
+  //----------------------------------------------------------------------------------------------------------
+  SD.begin(53);/*Tem que estar aqui para fazer as verificação de permancia do SD-CARD. Caso contrario quando houve a retirado do SD e logo apos
+                 vc inserir as novas leituras nao serão mais gravadas no SD.*/
+  //==========================================================================================================
   //Inicio RTC
   //==========================================================================================================
   //----------------------------------------------------------------------------------------------------------
   // Le os valores (data e hora) do modulo DS1307
   int segundos, minutos, horas, diadasemana, diadomes, mes, ano;
-  WIRE(&segundos, &minutos, & horas, &diadasemana, &diadomes, &mes, &ano);
+  WIRE(&segundos, &minutos, &horas, &diadasemana, &diadomes, &mes, &ano);
   //==========================================================================================================
   if (flagSD != 0x01) {
     // Le os valores (data e hora) do modulo DS1307
@@ -126,7 +118,7 @@ void loop() {
     erro(segundos);
   }
   if (flagSD != 0x00) {
-      switch (diadasemana) {
+    switch (diadasemana) {
       case 0: diadasemana2 = "Domingo";
         break;
       case 1: diadasemana2 = "Segunda";
@@ -148,7 +140,7 @@ void loop() {
     //Inicio Ethernet
     //==========================================================================================================
     //----------------------------------------------------------------------------------------------------------
-    
+
     //Rotina para saber se caiu energia ou mudou o dia
     EthernetClient client = server.available();   // Verifica se tem alguém conectado
     if (client) {
@@ -198,7 +190,7 @@ void loop() {
             if (horas < 10) {
               client.print("0");
               client.print(horas);
-            }else client.print(horas);
+            } else client.print(horas);
             client.print(":");
             if (minutos < 10) {
               client.print("0");
@@ -259,9 +251,10 @@ void loop() {
         } //Fecha if (client.available())
       } //Fecha While (client.connected())
       delay(3);// Espera um tempo para o navegador receber os dados
-      client.stop(); // Fecha a conexão
+      client.stop(); // Fecha a conexão - é obrigatorio ter esse comando para depois realizar novas conexões
     } //Fecha if(client)
     //Fim Ethernet
+ 
     //----------------------------------------------------------------------------------------------------------
     //==========================================================================================================
     //Inicio EEPROM Energia
@@ -290,8 +283,8 @@ void loop() {
       for (int i = 1; i < 255; i++) {
         if (posEpron[i] > 0) {
           somaPosEEpron += posEpron[i];
-          //Serial.print("i= "); Serial.print(i); Serial.print(" - "); Serial.print("endEEpron2= ");
-          //Serial.println(EEPROM.read(0)); endEEpron = i; //Lembra onde o endereço que parou a contagem
+          //debug => Serial.print("i= "); Serial.print(i); Serial.print(" - "); Serial.print("endEEpron2= ");
+          //debug => Serial.println(EEPROM.read(0)); endEEpron = i; //Lembra onde o endereço que parou a contagem
         }//Soma os vetores acima de zero em x
 
         if (posEpron[i] > 0 && posEpron[i] < 255) {
@@ -304,7 +297,7 @@ void loop() {
         }
       }
     } flagEEpron = false;
-    //Serial.print(endEEpron); Serial.print(" - "); Serial.print(countAgua); Serial.print(" - "); Serial.println(somaPosEEpron);
+    //debug => Serial.print(endEEpron); Serial.print(" - "); Serial.print(countAgua); Serial.print(" - "); Serial.println(somaPosEEpron);
     //Fim EEPRON
     //----------------------------------------------------------------------------------------------------------
     //==========================================================================================================
@@ -420,7 +413,7 @@ void WriteSDEE(int horas, int minutos, int segundos, int diadomes, int mes, int 
       somaPosEEpron = 0x00;
       EEPROM.write(endEEpron, countAgua);//Pra validar uma das condição if da EEPRON salva ZERO no proximo endereço
       flagEEpron = 1;
-    }// Serial.print(endEEpron); Serial.print(" - "); Serial.print(countAgua); Serial.print(" - "); Serial.println(somaPosEEpron);
+    }//debug => Serial.print(endEEpron); Serial.print(" - "); Serial.print(countAgua); Serial.print(" - "); Serial.println(somaPosEEpron);
   }
 }
 
@@ -516,5 +509,39 @@ void WIRE(int* segundos, int* minutos, int* horas, int* diadasemana, int* diadom
   *diadomes = ConverteparaDecimal(Wire.read());
   *mes = ConverteparaDecimal(Wire.read());
   *ano = ConverteparaDecimal(Wire.read());
-
 }
+void sdCARD(int carD) {
+  if (carD == 0) {
+    display.setTextSize(1);
+    display.setTextColor(WHITE);
+    display.setCursor(20, 0);
+    display.println("Erro ao iniciar");
+    display.setCursor(35, 10);
+    display.print("cartao SD");
+    display.display();
+    display.setTextSize(1);
+    display.setTextColor(WHITE);
+    display.setCursor(30, 40);
+    display.println("Diagnostico: ");
+    display.setCursor(25, 50);
+    display.print("Sem cartao SD");
+    display.display();
+  } else if (carD == 1) {
+    display.setTextSize(1);
+    display.setTextColor(WHITE);
+    display.setCursor(20, 0);
+    display.println("Cartao SD");
+    display.setCursor(35, 10);
+    display.print("retirado");
+    display.display();
+    display.setTextSize(1);
+    display.setTextColor(WHITE);
+    display.setCursor(30, 40);
+    display.println("Ao inserir");
+    display.setCursor(25, 50);
+    display.print("reset a maquina.");
+    display.display();
+  }
+}
+
+
