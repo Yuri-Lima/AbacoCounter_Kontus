@@ -1,3 +1,14 @@
+/* Contador de Garrafões de Água
+Autor: Yuri Lima
+Empresa: Robot One
+Site: http://www.Robotone.com.br
+---Acesso Remoto---
+aguarobotone.dyndns.org 
+---Acesso Interno---
+http://192.168.25.177/interno
+---IMPORTANTE---
+Todas as vezes que mudar o arduino tem que zerar a variavel flag2 passando ela para true
+*/
 #include "Agua.h"
 #include <SD.h>
 #include <SPI.h>
@@ -7,7 +18,6 @@
 #include <Ethernet.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
-/* Atenção todas as vezes que mudar o arduino tem que zerar a variavel*/
 //================================================
 //Ethernet
 byte mac[] = {0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED};
@@ -29,7 +39,7 @@ boolean flagEEpron = true, flagEndPron = true, flag2 = true;
 //OLED
 #define OLED_RESET 8
 #define delayRobotOne 3000//Tempo de visualização no display
-#define delayCartaoIniciado 1000//Tempo de visualização no display
+#define delayCartaoIniciado 3000//Tempo de visualização no display
 Adafruit_SSD1306 display(OLED_RESET);
 //================================================
 //RTC
@@ -55,19 +65,18 @@ byte countAgua = 0x00; //Contador de agua limite de 65.535 2 bytes
 #define ECO 3
 #define detecMax 50 //Limite de detecção em 50 cm
 #define filtro 20 //Define a quantidade minima de leituras para distinguir um objeto
-#define timeFiltro 10 //Intervalos entre leituras que vai influenciar no filtro
+#define timeFiltro 5 //Intervalos entre leituras que vai influenciar no filtro
 ULTRA ultra(ECO, TRIG); //Objeto da classe ultra
-EthernetClient client;
 void setup() {
-  Serial.begin(9600);
-  //I2C
+  //Serial.begin(9600);
+  //I2C RTC
   Wire.begin();
   //SelecionaDataeHora();//Tem que ficar abaixo do Wire.begin é ativado apenas para mudar data e hora
   //==========================================================================================================
   //Ethernet
   Ethernet.begin(mac, ip);
   //==========================================================================================================
-  //OLED
+  //I2C OLED
   display.begin(SSD1306_SWITCHCAPVCC, 0x3C);
   display.clearDisplay();
   display.setRotation(2);//Rotação do display.
@@ -92,7 +101,6 @@ void setup() {
   display.print("Cartao SD Iniciado");
   display.display();
   delay(delayCartaoIniciado); display.clearDisplay(); display.clearDisplay();
-
 }
 //Fim Setup
 
@@ -138,7 +146,6 @@ void loop() {
     //Inicio Ethernet
     //==========================================================================================================
     //----------------------------------------------------------------------------------------------------------
-
     //Rotina para saber se caiu energia ou mudou o dia
     EthernetClient client = server.available();   // Verifica se tem alguém conectado
     if (client) {
@@ -212,6 +219,8 @@ void loop() {
               client.print("<B><span style=\"color: #00ff00;\">");
               client.print("ON");
               client.print("</span></B></center>");
+              delay(300);
+              arrayEstado[0] = !arrayEstado[0];
             }
             else {
               client.print("<B><span style=\"color: #000000;\">");
