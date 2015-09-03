@@ -7,7 +7,8 @@ aguarobotone.dyndns.org
 ---Acesso Interno---
 http://192.168.25.177/interno
 ---IMPORTANTE---
-Todas as vezes que mudar o arduino tem que zerar a variavel flag2 passando ela para true
+-> Todas as vezes que mudar o arduino tem que zerar a variavel flag2 passando ela para true
+-> Se depois de inicar a contagem vc retirar o SD CARD a contagem so vai funcionar corretamente, quando vc inserir novamente o SD.
 */
 #include "Agua.h"
 #include <SD.h>
@@ -38,8 +39,8 @@ boolean flagEEpron = true, flagEndPron = true, flag2 = true;
 //================================================
 //OLED
 #define OLED_RESET 8
-#define delayRobotOne 3000//Tempo de visualização no display
-#define delayCartaoIniciado 3000//Tempo de visualização no display
+#define delayRobotOne 1000//Tempo de visualização no display
+#define delayCartaoIniciado 1000//Tempo de visualização no display
 Adafruit_SSD1306 display(OLED_RESET);
 //================================================
 //RTC
@@ -52,7 +53,7 @@ byte zero = 0x00;//Serve para recpção de dados no CI do RTC
 //Sd Card
 File arquivo;//Objeto da classe File
 byte flagSD = 0x01;//Flag de validação do SD-CARD
-boolean flagWriteSDEE = true;
+boolean flagWriteSDEE = true;//False para nao gravar nada
 //================================================
 //Contadores
 #define limiteCont 0xFA00//Limita a contagem(Padrão 64000)
@@ -67,6 +68,7 @@ byte countAgua = 0x00; //Contador de agua limite de 65.535 2 bytes
 #define filtro 20 //Define a quantidade minima de leituras para distinguir um objeto
 #define timeFiltro 5 //Intervalos entre leituras que vai influenciar no filtro
 ULTRA ultra(ECO, TRIG); //Objeto da classe ultra
+
 void setup() {
   //Serial.begin(9600);
   //I2C RTC
@@ -90,7 +92,20 @@ void setup() {
   //==========================================================================================================
   //Verifica de tem SD-CARD
   while (!SD.begin(53)) {
-    sdCARD(0);//"0" para informa na tela de inicialização
+    display.setTextSize(1);
+    display.setTextColor(WHITE);
+    display.setCursor(20, 0);
+    display.println("Erro ao iniciar");
+    display.setCursor(35, 10);
+    display.print("cartao SD");
+    display.display();
+    display.setTextSize(1);
+    display.setTextColor(WHITE);
+    display.setCursor(30, 40);
+    display.println("Diagnostico: ");
+    display.setCursor(25, 50);
+    display.print("Sem cartao SD");
+    display.display();
   }
   display.clearDisplay();
   flagSD = 0x01;
@@ -282,22 +297,26 @@ void loop() {
     //----------------------------------------------------------------------------------------------------------
     //==========================================================================================================
     if (flagEEpron == true) {//Faz essa rotina ativar apenas uma vez a cada rest ou queda de luz
-      for (int i = 1; i < 255; i++) {//i==1 pois a posição zero esta reservada
+      if(EEPROM.read(255)!=diadasemana){
+        for (int i = 0; i < 255; i++) EEPROM.write(i, addr);
+      }
+      EEPROM.write(255, diadasemana);
+      for (int i = 1; i < 254; i++) {//i==1 pois a posição zero esta reservada
         posEpron[i] = EEPROM.read(i);//Realizar a leitura dos endereços da EEPRON e guarda no vetor
         //Serial.println(posEpron[i]);
       }
-      for (int i = 1; i < 255; i++) {
+      for (int i = 1; i < 254; i++) {
         if (posEpron[i] > 0) {
           somaPosEEpron += posEpron[i];
           //debug => Serial.print("i= "); Serial.print(i); Serial.print(" - "); Serial.print("endEEpron2= ");
           //debug => Serial.println(EEPROM.read(0)); endEEpron = i; //Lembra onde o endereço que parou a contagem
         }//Soma os vetores acima de zero em x
 
-        if (posEpron[i] > 0 && posEpron[i] < 255) {
+        if (posEpron[i] > 0 && posEpron[i] < 254) {
           countAgua = posEpron[i];
           endEEpron = i;
         }
-        if (posEpron[i] == 0 && EEPROM.read(i - 1) == 255) {
+        if (posEpron[i] == 0 && EEPROM.read(i - 1) == 254) {
           countAgua = 0;
           endEEpron = i;
         }
@@ -404,8 +423,7 @@ void WriteSDEE(int horas, int minutos, int segundos, int diadomes, int mes, int 
     arquivo.seek(0x00);
     arquivo.print("Quantidade: ");
     arquivo.println(somaPosEEpron);
-    arquivo.print("Horario: ");
-    arquivo.print(horas); arquivo.print(":"); arquivo.println(minutos);
+    arquivo.print("Horario: ");arquivo.print(horas); arquivo.print(":"); arquivo.println(minutos);
     arquivo.print("Data: "); arquivo.print(diadasemana2); arquivo.print("  --  ");
     arquivo.print(diadomes); arquivo.print("/"); arquivo.print(mes); arquivo.print("/"); arquivo.print(ano);
     arquivo.close();
@@ -426,11 +444,11 @@ void WriteSDEE(int horas, int minutos, int segundos, int diadomes, int mes, int 
 //==========================================================================================================
 void SelecionaDataeHora() { //Seta a data e a hora do DS1307
   byte segundos = 00; //Valores de 0 a 59
-  byte minutos = 39; //Valores de 0 a 59
-  byte horas = 16; //Valores de 0 a 23
-  byte diadasemana = 3; //Valores de 0 a 6 - 0=Domingo, 1 = Segunda, etc.
-  byte diadomes = 19; //Valores de 1 a 31
-  byte mes = 8; //Valores de 1 a 12
+  byte minutos = 31; //Valores de 0 a 59
+  byte horas = 9; //Valores de 0 a 23
+  byte diadasemana = 4; //Valores de 0 a 6 - 0=Domingo, 1 = Segunda, etc.
+  byte diadomes = 3; //Valores de 1 a 31
+  byte mes = 9; //Valores de 1 a 12
   byte ano = 15; //Valores de 0 a 99
   Wire.beginTransmission(DS1307_ADDRESS);
   Wire.write(zero); //Stop no CI para que o mesmo possa receber os dados
@@ -499,10 +517,7 @@ void erro(int segundos) {
   display.print("Maxima");
   display.display();
 }
-void zeraTUDO() {
-  EEPROM.write(0, 1);//Inicializador que vai lembrar a ultima posição da contagem. So ativar uma vez e depois comentar
-  for (int i = 0; i < 255; i++) EEPROM.write(i, addr);
-}
+
 void WIRE(int* segundos, int* minutos, int* horas, int* diadasemana, int* diadomes, int* mes, int* ano) {
   Wire.beginTransmission(DS1307_ADDRESS);
   Wire.write(zero);
@@ -515,39 +530,6 @@ void WIRE(int* segundos, int* minutos, int* horas, int* diadasemana, int* diadom
   *diadomes = ConverteparaDecimal(Wire.read());
   *mes = ConverteparaDecimal(Wire.read());
   *ano = ConverteparaDecimal(Wire.read());
-}
-void sdCARD(int carD) {
-  if (carD == 0) {
-    display.setTextSize(1);
-    display.setTextColor(WHITE);
-    display.setCursor(20, 0);
-    display.println("Erro ao iniciar");
-    display.setCursor(35, 10);
-    display.print("cartao SD");
-    display.display();
-    display.setTextSize(1);
-    display.setTextColor(WHITE);
-    display.setCursor(30, 40);
-    display.println("Diagnostico: ");
-    display.setCursor(25, 50);
-    display.print("Sem cartao SD");
-    display.display();
-  } else if (carD == 1) {
-    display.setTextSize(1);
-    display.setTextColor(WHITE);
-    display.setCursor(20, 0);
-    display.println("Cartao SD");
-    display.setCursor(35, 10);
-    display.print("retirado");
-    display.display();
-    display.setTextSize(1);
-    display.setTextColor(WHITE);
-    display.setCursor(30, 40);
-    display.println("Ao inserir");
-    display.setCursor(25, 50);
-    display.print("reset a maquina.");
-    display.display();
-  }
 }
 
 
