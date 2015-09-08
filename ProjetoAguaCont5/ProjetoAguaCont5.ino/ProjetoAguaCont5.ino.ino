@@ -291,7 +291,7 @@ void loop() {
     //==========================================================================================================
     //----------------------------------------------------------------------------------------------------------
     //Iniciadores true para zerar tudo
-    flag2 = false;
+    flag2 = true;
     if (flag2) {
       EEPROM.write(0, 1);//Inicializador que vai lembrar a ultima posição da contagem. So ativar uma vez e depois comentar
       for (int i = 0; i < 255; i++) EEPROM.write(i, addr);
