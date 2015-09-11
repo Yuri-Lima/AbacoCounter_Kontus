@@ -284,14 +284,14 @@ void loop() {
     //==========================================================================================================
     //-----------------------------------------------------------------------------------------------------------
     //Rotina para saber se caiu energia ou mudou o dia
-    if (EEPROM.read(255)!=diadasemana) {
+    if (horas==21 || EEPROM.read(255)!=diadasemana) {
       countAgua = 0x00;
       for (int i = 0; i < 255; i++) EEPROM.write(i, addr); //zera todos os endereços da EEPRON
     }
     //==========================================================================================================
     //----------------------------------------------------------------------------------------------------------
     //Iniciadores true para zerar tudo
-    flag2 = true;
+    flag2 = false;
     if (flag2) {
       EEPROM.write(0, 1);//Inicializador que vai lembrar a ultima posição da contagem. So ativar uma vez e depois comentar
       for (int i = 0; i < 255; i++) EEPROM.write(i, addr);
