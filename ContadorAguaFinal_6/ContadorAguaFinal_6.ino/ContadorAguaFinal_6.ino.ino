@@ -63,9 +63,9 @@ byte countAgua = 0x00; //Contador de agua limite de 65.535 2 bytes
 //================================================
 //LDR
 #define sensorLdr  4
-#define detecLuz 500 //Limite de detecção em 50 cm
+#define detecLuz 500 //Limite de detecção 
 #define filtro 2 //Define a quantidade minima de leituras para distinguir um objeto
-#define timeFiltro 2 //Intervalos entre leituras que vai influenciar no filtro
+#define timeFiltro 0 //Intervalos entre leituras que vai influenciar no filtro
 //================================================
 //Laser
 #define laser 44
@@ -135,7 +135,6 @@ void loop() {
     WIRE(&segundos, &minutos, & horas, &diadasemana, &diadomes, &mes, &ano);
     erro(segundos);
   }
-  //EEPROM.write(255, diadasemana);//Salva o diadasemana na EEPROM 
   if (flagSD != 0x00) {
     switch (diadasemana) {
       case 0: diadasemana2 = "Domingo";
@@ -286,6 +285,8 @@ void loop() {
     //Iniciadores true para zerar tudo
     flag2 = false;
     if (flag2) {
+      countAgua = 0x00;
+      somaPosEEpron=0x00;
       EEPROM.write(0, 1);//Inicializador que vai lembrar a ultima posição da contagem. So ativar uma vez e depois comentar
       for (int i = 0; i < 255; i++) EEPROM.write(i, addr);
     }
@@ -318,7 +319,7 @@ void loop() {
     //Fim EEPRON
     //----------------------------------------------------------------------------------------------------------
     //==========================================================================================================
-    //Inicio Ultrasson
+    //Inicio LDR
     //==========================================================================================================
     //----------------------------------------------------------------------------------------------------------
     //Acionamento de contagem pelo LDR
@@ -349,16 +350,18 @@ void loop() {
 //Controle de EEPRON + SD escrita
 void WriteSDEE(int horas, int minutos, int segundos, int diadomes, int mes, int ano, int countAgua) {
   SD.begin(53);/*Tem que estar aqui para fazer as verificação de permancia do SD-CARD. Caso contrario quando houve a retirado do SD e logo apos
-                 vc inserir as novas leituras nao serão mais gravadas no SD.*/ 
+                 vc inserir as novas leituras nao serão mais gravadas no SD.*/
+  //if(SD.exists("LogData.csv"))
+  //SD.remove("LogData.csv"); //Apaga para atualizar a tabela
+  //if (horas - lastHoras == 1){ if(SD.exists("LogHora.csv")==true)SD.remove("LogHora.csv");} //Apaga para atualizar a tabela
   if (flagWriteSDEE == true) {
+    SD.remove("LogData.csv"); //Apaga para atualizar a tabela
     arquivo = SD.open("LogData.csv", FILE_WRITE);//escreve no SD
     if (horas - lastHoras == 1)arquivo = SD.open("LogHora.csv", FILE_WRITE); //escreve no SD
     arquivo.seek(0x00);
-    arquivo.print("Quantidade: ");
-    arquivo.println(somaPosEEpron);
+    arquivo.print("Quantidade: "); arquivo.println(somaPosEEpron);
     arquivo.print("Horario: ");arquivo.print(horas); arquivo.print(":"); arquivo.println(minutos);
-    arquivo.print("Data: "); arquivo.print(diadasemana2); arquivo.print("  --  ");
-    arquivo.print(diadomes); arquivo.print("/"); arquivo.print(mes); arquivo.print("/"); arquivo.print(ano);
+    arquivo.print("Data: "); arquivo.print(diadomes); arquivo.print("/"); arquivo.print(mes); arquivo.print("/"); arquivo.print(ano);
     arquivo.close();
     lastHoras = horas;//Guarda a ultima hora para depois gravar no LogHora de hora em hora
     //Rotina que salva no primeiro endereço da EEPRON==1 quando x é menor que 255
