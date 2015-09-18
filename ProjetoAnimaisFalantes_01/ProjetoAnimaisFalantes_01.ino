@@ -3,24 +3,24 @@
 //Autor : Arduino e Cia
 
 #include <Wtv020sd16p.h>
-#include <Servo.h>
-Servo myservo,myservo2;
-int pos = 0,pos2=0;
+//#include <Servo.h>
+//Servo myservo,myservo2;
+//int pos = 0,pos2=0;
 
-#define echoPin 2
-#define trigPin 3
-double duracao = 0;
-double disT = 0;
-boolean flag = 0;
+//#define echoPin 2
+//#define trigPin 3
+//double duracao = 0;
+//double disT = 0;
+//boolean flag = 0;
 #define tempMusic 3000
-# define resetPin 4  //Pino Reset
+#define resetPin 4  //Pino Reset
 #define clockPin A5  //Pino clock
 #define dataPin A4   //Pino data (DI)
 int busyPin = 5;   //Pino busy
-long previousMillis = 0;        // Variável de controle do tempo
-long redLedInterval = 10000;     // Tempo em ms do intervalo a ser executado
-long previousMillis2 = 0;        // Variável de controle do tempo
-long redLedInterval2 = 12000;     // Tempo em ms do intervalo a ser executado
+//long previousMillis = 0;        // Variável de controle do tempo
+//long redLedInterval = 10000;     // Tempo em ms do intervalo a ser executado
+//long previousMillis2 = 0;        // Variável de controle do tempo
+//long redLedInterval2 = 12000;     // Tempo em ms do intervalo a ser executado
 
 //Variavel que armazena os caracteres recebidos
 char buf;
@@ -28,18 +28,21 @@ char buf;
 Wtv020sd16p wtv020sd16p(resetPin, clockPin, dataPin, busyPin);
 
 void setup() {
-  myservo.attach(6);
-  myservo2.attach(7);
+  pinMode(2,OUTPUT);
+ // myservo.attach(6);
+ // myservo2.attach(7);
   Serial.begin(9600);
   wtv020sd16p.reset();
-  myservo.write(0);
+ // myservo.write(0);
   menu_inicial();
 }
 
 void loop() {
+  digitalWrite(2,1);
+  delay(5000);
   //==========================================================================
   //Asa
-  unsigned long currentMillis = millis();    //Tempo atual em ms
+ /* unsigned long currentMillis = millis();    //Tempo atual em ms
   if (currentMillis - previousMillis > redLedInterval) {
     previousMillis = currentMillis;    
     for (pos = 0; pos <= 50; pos += 1) { 
@@ -65,17 +68,26 @@ void loop() {
       myservo2.write(pos2);              
       delay(5);                       
     }
-  }
-  if (distancia() < 20) {
-    Serial.println("Reproduzindo 0001.ad4");
-    wtv020sd16p.playVoice(1);
-    //Reproduz o arquivo 1
-    wtv020sd16p.asyncPlayVoice(0);
-    delay(tempMusic);
-    wtv020sd16p.stopVoice();
-    delay(20);
-    menu_inicial();
-  }
+  }*/
+ 
+    
+    //wtv020sd16p.playVoice(1);
+    //wtv020sd16p.asyncPlayVoice(0);
+   // delay(tempMusic);
+    //wtv020sd16p.stopVoice();
+   // delay(20);
+
+
+
+
+
+
+
+
+
+    
+   // menu_inicial();
+  
 }
 
 
@@ -86,6 +98,7 @@ void menu_inicial()
   Serial.println("1 - Reproduz o arquivo 0001.ad4");
   Serial.println();
 }
+/*
 int distancia() {
   //seta o pino 12 com um pulso baixo "LOW" ou desligado ou ainda 0
   digitalWrite(trigPin, LOW);
@@ -103,4 +116,4 @@ int distancia() {
     disT = 999;//3E7->999
   }
   return disT;
-}
+}*/
