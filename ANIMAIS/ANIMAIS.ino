@@ -15,12 +15,15 @@ double disT = 0;
 #define dataPin A4   //Pino data (DI)
 int busyPin = 5;   //Pino busy
 long previousMillis = 0;        // Variável de controle do tempo
-long redLedInterval = 10000;     // Tempo em ms do intervalo a ser executado
+long Interval = 10000;     // Tempo em ms do intervalo a ser executado
 long previousMillis2 = 0;        // Variável de controle do tempo
-long redLedInterval2 = 20000;     // Tempo em ms do intervalo a ser executado
+long previousMillis3 = 0;        // Variável de controle do tempo
+long Interval2 = 20000;     // Tempo em ms do intervalo a ser executado
+long Interval3 = 25000;     // Tempo em ms do intervalo a ser executado
 unsigned long currentMillis;
 unsigned long currentMillis2;
-
+unsigned long currentMillis3;
+long aleatNumber;
 //Variavel que armazena os caracteres recebidos
 char buf;
 
@@ -30,6 +33,8 @@ void setup() {
   pinMode(9, INPUT);
   pinMode(play, OUTPUT);
   pinMode(reset2, OUTPUT);
+  pinMode(echoPin, INPUT);
+  pinMode(trigPin, OUTPUT);
   myservo.attach(boca);
   myservo.write(50);
   myservo2.attach(asa);
@@ -42,50 +47,81 @@ void setup() {
 }
 
 void loop() {
-  //Serial.println(distancia());
   Serial.println(myservo.read());
-  if(myservo.read()!=50)myservo.write(50);
-  //if (distancia() < 20) {
-  //==========================================================================
-  //Boca
-  currentMillis = millis();    //Tempo atual em ms
-  if (currentMillis - previousMillis > redLedInterval) {
-    previousMillis = currentMillis;
-    Serial.print("Boca");Serial.println(" - ");
-    Serial.println("Play");
-    digitalWrite(play, 1); //Play
-    delay(10);
-    digitalWrite(play, 0); //Base
-    for (pos = 50; pos >= 0; pos -= 1) {
-      myservo.write(pos);
-      delay(50);
+  if (myservo.read() != 50)myservo.write(50);
+  if (distancia() < 20 && distancia() != 999) {
+    aleatNumber = random(1, 4);
+    if (aleatNumber == 1) {
+      //==========================================================================
+      //Boca
+      currentMillis = millis();    //Tempo atual em ms
+      if (currentMillis - previousMillis > Interval) {
+        previousMillis = currentMillis;
+        Serial.print("Boca"); Serial.println(" - ");
+        Serial.println("Play");
+        digitalWrite(play, 1); //Play
+        delay(10);
+        digitalWrite(play, 0); //Base
+        for (pos = 50; pos >= 0; pos -= 1) {
+          myservo.write(pos);
+          delay(50);
+        }
+        for (pos = 0; pos <= 50; pos += 1) {
+          myservo.write(pos);
+          delay(50);
+        }
+        Serial.println("Pause");
+        digitalWrite(play, 1); //Pausa
+        delay(10);
+        digitalWrite(play, 0); //Base
+      }
     }
-    for (pos = 0; pos <= 50; pos += 1) {
-      myservo.write(pos);
-      delay(50);
+    //==========================================================================
+    //==========================================================================
+    //Asa
+    if (aleatNumber == 2) {
+      currentMillis2 = millis();    //Tempo atual em ms
+      if (currentMillis2 - previousMillis2 > Interval2) {
+        Serial.println("Asa");
+        previousMillis2 = currentMillis2;
+        for (pos2 = 50; pos2 >= 0; pos2 -= 1) {
+          myservo2.write(pos2);
+          delay(50);
+        }
+        for (pos2 = 0; pos2 <= 50; pos2 += 1) {
+          myservo2.write(pos2);
+          delay(50);
+        }
+      }
     }
-    Serial.println("Pause");
-    digitalWrite(play, 1); //Pausa
-    delay(10);
-    digitalWrite(play, 0); //Base
+    //==========================================================================
+    //==========================================================================
+    //Tudo
+    if (aleatNumber == 3) {
+      currentMillis3 = millis();    //Tempo atual em ms
+      if (currentMillis3 - previousMillis3 > Interval3) {
+        digitalWrite(play, 1); //Play
+        delay(10);
+        digitalWrite(play, 0); //Base
+        Serial.println("Tudo");
+        previousMillis3 = currentMillis3;
+        for (pos = 50, pos2 = 50; pos >= 0, pos2 >= 0; pos -= 1, pos2 -= 1) {
+          myservo.write(pos);
+          myservo2.write(pos2);
+          delay(50);
+        }
+        for (pos = 0, pos2 = 0; pos <= 50, pos2 <= 50; pos += 1, pos2 += 1) {
+          myservo.write(pos);
+          myservo2.write(pos2);
+          delay(50);
+        }
+      }
+      Serial.println("Pause");
+      digitalWrite(play, 1); //Pausa
+      delay(10);
+      digitalWrite(play, 0); //Base
+    }
   }
-  //==========================================================================
-  //==========================================================================
-  //Asa
-  currentMillis2 = millis();    //Tempo atual em ms
-  if (currentMillis2 - previousMillis2 > redLedInterval2) {
-    Serial.println("Asa");
-    previousMillis2 = currentMillis2;
-    for (pos2 = 50; pos2 >= 0; pos2 -= 1) {
-      myservo2.write(pos2);
-      delay(50);
-    }
-    for (pos2 = 0; pos2 <= 50; pos2 += 1) {
-      myservo2.write(pos2);
-      delay(50);
-    }
-  }
-  //}
 }
 int distancia() {
   //seta o pino 12 com um pulso baixo "LOW" ou desligado ou ainda 0
