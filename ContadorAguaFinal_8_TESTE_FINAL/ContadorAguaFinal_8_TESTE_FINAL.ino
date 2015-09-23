@@ -67,7 +67,7 @@ int detecObj = 0; //Limite de detecção
 #define timeFiltro 5 //Intervalos entre leituras que vai influenciar no filtro
 
 void setup() {
-  ZERA(false);//Iniciadores true para zerar tudo
+  ZERA(false);//Iniciadores, true para zerar tudo
   pinMode(sensorReflexivo, INPUT_PULLUP);
   //Serial.begin(9600);
   //I2C RTC
