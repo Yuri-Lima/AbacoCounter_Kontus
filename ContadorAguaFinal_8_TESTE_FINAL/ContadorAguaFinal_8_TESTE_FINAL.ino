@@ -65,7 +65,7 @@ int countAgua = 0x00; //Contador de agua limite de 65.535 2 bytes
 #define sensorReflexivo  36
 int detecObj = 0; //Limite de detecção
 //#define filtro 2 //Define a quantidade minima de leituras para distinguir um objeto
-#define timeFiltro 5 //Intervalos entre leituras que vai influenciar no filtro
+#define timeFiltro 2 //Intervalos entre leituras que vai influenciar no filtro
 
 void setup() {
   ZERA(false);//Iniciadores, true para zerar tudo
@@ -206,6 +206,7 @@ void loop() {
         erro();
       }
     }
+    flagAgua = false;
     //Fim Ultrasson
     display2( somaPosEEpron, segundos,  minutos,  horas,  diadasemana,  diadomes,  mes,  ano);//Imprimi Display
   }
