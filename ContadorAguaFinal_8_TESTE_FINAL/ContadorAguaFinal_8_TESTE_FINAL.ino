@@ -41,6 +41,7 @@ boolean flagEEpron = true, flagEndPron = true;
 #define delayRobotOne 1000//Tempo de visualização no display
 #define delayCartaoIniciado 1000//Tempo de visualização no display
 Adafruit_SSD1306 display(OLED_RESET);
+const String string[10] PROGMEM ={"Robot One"}; 
 //================================================
 //RTC
 #define DS1307_ADDRESS 0x68// Modulo RTC no endereco 0x68
@@ -85,7 +86,7 @@ void setup() {
   display.setTextColor(WHITE);
   display.setCursor(15, 0);
   display.clearDisplay();
-  display.print("Robot One");
+  display.print(pgm_read_byte(&string[10]));
   display.display();
   delay(delayRobotOne); display.clearDisplay();
   //==========================================================================================================
@@ -161,8 +162,6 @@ void loop() {
       for (int i = 1; i < 255; i++) {//i==1 pois a posição zero esta reservada
         posEpron[i] = EEPROM.read(i);//Realizar a leitura dos endereços da EEPRON e guarda no vetor
         //Serial.println(posEpron[i]);
-      }
-      for (int i = 1; i < 255; i++) {
         //Soma os vetores acima de zero em somaPosEEpron
         if (posEpron[i] > 0) {
           somaPosEEpron += posEpron[i];
@@ -221,15 +220,15 @@ void WriteSDEE(int horas, int minutos, int segundos, int diadomes, int mes, int 
                  vc inserir as novas leituras nao serão mais gravadas no SD.*/
   //if (horas - lastHoras == 1){ if(SD.exists("LogHora.csv")==true)SD.remove("LogHora.csv");} //Apaga para atualizar a tabela
   if (flagWriteSDEE == true) {
-    if (SD.exists("LogData.csv")) SD.remove("LogData.csv"); //Apaga para atualizar a tabela
+    //if (SD.exists("LogData.csv")) SD.remove("LogData.csv"); //Apaga para atualizar a tabela
     arquivo = SD.open("LogData.csv", FILE_WRITE);//escreve no SD
-    //if (horas - lastHoras == 1)arquivo = SD.open("LogHora.csv", FILE_WRITE); //escreve no SD
-    arquivo.seek(0x00);
+    if (horas - lastHoras == 1)arquivo = SD.open("LogHora.csv", FILE_WRITE); //escreve no SD
+    //arquivo.seek(0x00);
     arquivo.print("Quantidade: "); arquivo.println(somaPosEEpron);
     arquivo.print("Horario: "); arquivo.print(horas); arquivo.print(":"); arquivo.println(minutos);
-    arquivo.print("Data: "); arquivo.print(diadomes); arquivo.print("/"); arquivo.print(mes); arquivo.print("/"); arquivo.print(ano);
+    arquivo.print("Data: "); arquivo.print(diadomes); arquivo.print("/"); arquivo.print(mes); arquivo.print("/"); arquivo.println(ano);
     arquivo.close();
-    //lastHoras = horas;//Guarda a ultima hora para depois gravar no LogHora de hora em hora
+    lastHoras = horas;//Guarda a ultima hora para depois gravar no LogHora de hora em hora
     //Rotina que salva no primeiro endereço da EEPRON==1 quando countAgua é menor que 255
     if (countAgua > 0 && countAgua <= 255)EEPROM.write(endEEpron, countAgua); //Na posição zero ja tem que esta gravado a posição inicial de leitura
     if (countAgua > 254) {
