@@ -31,24 +31,22 @@ String diadasemana2;
 //================================================
 //EEPROM
 #define addr 0x00
-unsigned int somaPosEEpron = 0x00;//Guarda o somatorio dos numeros guardados no endereços da EEPRON
-unsigned int endEEpron = 0x01;//Guarda os ultimos endereços da EEPRON na posição ZERO
-unsigned int posEpron[256];
+uint16_t somaPosEEpron = 0x00;//Guarda o somatorio dos numeros guardados no endereços da EEPRON
+uint16_t endEEpron = 0x01;//Guarda os ultimos endereços da EEPRON na posição ZERO
+uint16_t posEpron[256];
 boolean flagEEpron = true, flagEndPron = true;
 //================================================
 //OLED
 #define OLED_RESET 8
-#define delayRobotOne 1000//Tempo de visualização no display
-#define delayCartaoIniciado 1000//Tempo de visualização no display
+#define delayRobotOne 200//Tempo de visualização no display
+#define delayCartaoIniciado 200//Tempo de visualização no display
 Adafruit_SSD1306 display(OLED_RESET);
-const String string[10] PROGMEM ={"Robot One"}; 
 //================================================
 //RTC
 #define DS1307_ADDRESS 0x68// Modulo RTC no endereco 0x68
-int lastHoras = 0;//Guarda a ultima leitura da hora
-//byte horaZero = 23;//Horario para a variavel contAgua ZERAR
+int16_t lastHoras = 0;//Guarda a ultima leitura da hora
 byte zero = 0x00;//Serve para recpção de dados no CI do RTC
-int segundos, minutos, horas, diadasemana, diadomes, mes, ano;
+int16_t segundos, minutos, horas, diadasemana, diadomes, mes, ano;
 //================================================
 //Sd Card
 File arquivo;//Objeto da classe File
@@ -57,14 +55,11 @@ boolean flagWriteSDEE = true;//False para nao gravar nada
 //================================================
 //Contadores
 #define limiteCont 0xF230//Limita a contagem(Padrão 62000)
-//int count = 0x00; // Contador do filtro para sensibilidade do ultrasson na detecção de objetos
 boolean flagAgua = false; //Sinalizador de estado logico alto
-int countAgua = 0x00; //Contador de agua limite de 65.535 2 bytes
+uint16_t countAgua = 0x00; //Contador de agua limite de 65.535 2 bytes
 //================================================
 //Sensor Reflexivo
-#define sensorReflexivo  36
-int detecObj = 0; //Limite de detecção
-//#define filtro 2 //Define a quantidade minima de leituras para distinguir um objeto
+#define sensorReflexivo  18
 #define timeFiltro 2 //Intervalos entre leituras que vai influenciar no filtro
 
 void setup() {
@@ -86,7 +81,7 @@ void setup() {
   display.setTextColor(WHITE);
   display.setCursor(15, 0);
   display.clearDisplay();
-  display.print(pgm_read_byte(&string[10]));
+  display.print("Robot One");
   display.display();
   delay(delayRobotOne); display.clearDisplay();
   //==========================================================================================================
@@ -95,9 +90,11 @@ void setup() {
     display.setTextSize(1);
     display.setTextColor(WHITE);
     display.setCursor(20, 0);
-    display.println("Erro ao iniciar");
+    display.println("Erro ao iniciar.");
     display.setCursor(35, 10);
-    display.print("cartao SD");
+    display.println("Desligue!");
+    display.setCursor(35, 10);
+    display.print("98769.9288");
     display.display();
     display.setTextSize(1);
     display.setTextColor(WHITE);
@@ -191,7 +188,7 @@ void loop() {
     //----------------------------------------------------------------------------------------------------------
     //Acionamento de contagem pelo LDR
     //Serial.println(digitalRead(sensorReflexivo));
-    while (digitalRead(sensorReflexivo) != detecObj) {
+    while (digitalRead(sensorReflexivo)) {
       flagAgua = true; //flag de verificações
       WIRE(&segundos, &minutos, &horas, &diadasemana, &diadomes, &mes, &ano);//Atualiza data e hora
       zeraTudo(horas, minutos); //Zera dependedo das ccondição e dados atualizados
@@ -217,19 +214,19 @@ void loop() {
 //----------------------------------------------------------------------------------------------------------
 //Controle de EEPRON + SD escrita
 void WriteSDEE(int horas, int minutos, int segundos, int diadomes, int mes, int ano, int countAgua) {
-  SD.begin(53);/*Tem que estar aqui para fazer as verificação de permancia do SD-CARD. Caso contrario quando houve a retirado do SD e logo apos
-                 vc inserir as novas leituras nao serão mais gravadas no SD.*/
+  //SD.begin(53);/*Tem que estar aqui para fazer as verificação de permancia do SD-CARD. Caso contrario quando houve a retirado do SD e logo apos
+//                 vc inserir as novas leituras nao serão mais gravadas no SD.*/
   //if (horas - lastHoras == 1){ if(SD.exists("LogHora.csv")==true)SD.remove("LogHora.csv");} //Apaga para atualizar a tabela
-  if (flagWriteSDEE == true) {
-    if (SD.exists("LogData.txt")) SD.remove("LogData.csv"); //Apaga para atualizar a tabela
+  if (flagWriteSDEE) {
+    //if (SD.exists("LogData.txt")) SD.remove("LogData.csv"); //Apaga para atualizar a tabela
     arquivo = SD.open("LogData.txt", FILE_WRITE);//escreve no SD
-    if (horas - lastHoras == 1)arquivo = SD.open("LogHora.csv", FILE_WRITE); //escreve no SD
+    //if (horas - lastHoras == 1)arquivo = SD.open("LogHora.csv", FILE_WRITE); //escreve no SD
     //arquivo.seek(0x00);
     arquivo.print("Quantidade: "); arquivo.println(somaPosEEpron);
     arquivo.print("Horario: "); arquivo.print(horas); arquivo.print(":"); arquivo.println(minutos);
     arquivo.print("Data: "); arquivo.print(diadomes); arquivo.print("/"); arquivo.print(mes); arquivo.print("/"); arquivo.println(ano);arquivo.println("------------------------------------------------------");
     arquivo.close();
-    lastHoras = horas;//Guarda a ultima hora para depois gravar no LogHora de hora em hora
+    //lastHoras = horas;//Guarda a ultima hora para depois gravar no LogHora de hora em hora
     //Rotina que salva no primeiro endereço da EEPRON==1 quando countAgua é menor que 255
     if (countAgua > 0 && countAgua <= 255)EEPROM.write(endEEpron, countAgua); //Na posição zero ja tem que esta gravado a posição inicial de leitura
     if (countAgua > 254) {
@@ -246,10 +243,10 @@ void WriteSDEE(int horas, int minutos, int segundos, int diadomes, int mes, int 
 //==========================================================================================================
 void SelecionaDataeHora() { //Seta a data e a hora do DS1307
   byte segundos = 00; //Valores de 0 a 59
-  byte minutos = 29; //Valores de 0 a 59
-  byte horas = 7; //Valores de 0 a 23
-  byte diadasemana = 3; //Valores de 0 a 6 - 0=Domingo, 1 = Segunda, etc.
-  byte diadomes = 16; //Valores de 1 a 31
+  byte minutos = 53; //Valores de 0 a 59
+  byte horas = 22; //Valores de 0 a 23
+  byte diadasemana = 4; //Valores de 0 a 6 - 0=Domingo, 1 = Segunda, etc.
+  byte diadomes = 24; //Valores de 1 a 31
   byte mes = 9; //Valores de 1 a 12
   byte ano = 15; //Valores de 0 a 99
   Wire.beginTransmission(DS1307_ADDRESS);
