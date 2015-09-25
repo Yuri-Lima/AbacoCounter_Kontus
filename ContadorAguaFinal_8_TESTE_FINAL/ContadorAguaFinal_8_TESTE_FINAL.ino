@@ -221,13 +221,13 @@ void WriteSDEE(int horas, int minutos, int segundos, int diadomes, int mes, int 
                  vc inserir as novas leituras nao serão mais gravadas no SD.*/
   //if (horas - lastHoras == 1){ if(SD.exists("LogHora.csv")==true)SD.remove("LogHora.csv");} //Apaga para atualizar a tabela
   if (flagWriteSDEE == true) {
-    //if (SD.exists("LogData.csv")) SD.remove("LogData.csv"); //Apaga para atualizar a tabela
-    arquivo = SD.open("LogData.csv", FILE_WRITE);//escreve no SD
+    if (SD.exists("LogData.txt")) SD.remove("LogData.csv"); //Apaga para atualizar a tabela
+    arquivo = SD.open("LogData.txt", FILE_WRITE);//escreve no SD
     if (horas - lastHoras == 1)arquivo = SD.open("LogHora.csv", FILE_WRITE); //escreve no SD
     //arquivo.seek(0x00);
     arquivo.print("Quantidade: "); arquivo.println(somaPosEEpron);
     arquivo.print("Horario: "); arquivo.print(horas); arquivo.print(":"); arquivo.println(minutos);
-    arquivo.print("Data: "); arquivo.print(diadomes); arquivo.print("/"); arquivo.print(mes); arquivo.print("/"); arquivo.println(ano);
+    arquivo.print("Data: "); arquivo.print(diadomes); arquivo.print("/"); arquivo.print(mes); arquivo.print("/"); arquivo.println(ano);arquivo.println("------------------------------------------------------");
     arquivo.close();
     lastHoras = horas;//Guarda a ultima hora para depois gravar no LogHora de hora em hora
     //Rotina que salva no primeiro endereço da EEPRON==1 quando countAgua é menor que 255
