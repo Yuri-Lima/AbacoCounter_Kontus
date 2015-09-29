@@ -48,7 +48,7 @@ uint16_t countAgua = 0x00; //Contador de agua limite de 65.535 2 bytes
 //================================================
 //Sensor Reflexivo
 #define sensorReflexivo  18
-#define timeFiltro 2 
+#define timeFiltro 2
 
 void setup() {
   //Interrupção do Sensor Retro-Reflexivo
@@ -59,7 +59,7 @@ void setup() {
   //I2C RTC
   Wire.begin();
   //SelecionaDataeHora();//Tem que ficar abaixo do Wire.begin é ativado apenas para mudar data e hora
-   //==========================================================================================================
+  //==========================================================================================================
   //I2C OLED
   display.begin(SSD1306_SWITCHCAPVCC, 0x3C);
   display.clearDisplay();
@@ -164,10 +164,10 @@ void loop() {
       zeraTudo(horas, minutos); //Zera dependedo das ccondição e dados atualizados
       display2(somaPosEEpron, segundos,  minutos,  horas,  diadasemana,  diadomes,  mes,  ano);//Imprimi Display
     }
-      if (somaPosEEpron == limiteCont) {
-        flagSD = 0x00;  //Para todo o processo e vai para erro() de contagem Maxima;
-        erro();
-      }
+    if (somaPosEEpron == limiteCont) {
+      flagSD = 0x00;  //Para todo o processo e vai para erro() de contagem Maxima;
+      erro();
+    }
     //Fim Ultrasson
   }
 
@@ -185,7 +185,7 @@ void WriteSDEE(int horas, int minutos, int segundos, int diadomes, int mes, int 
     //arquivo.seek(0x00);
     arquivo.print("Quantidade: "); arquivo.println(somaPosEEpron);
     arquivo.print("Horario: "); arquivo.print(horas); arquivo.print(":"); arquivo.println(minutos);
-    arquivo.print("Data: "); arquivo.print(diadomes); arquivo.print("/"); arquivo.print(mes); arquivo.print("/"); arquivo.println(ano);arquivo.println("------------------------------------------------------");
+    arquivo.print("Data: "); arquivo.print(diadomes); arquivo.print("/"); arquivo.print(mes); arquivo.print("/"); arquivo.println(ano); arquivo.println("------------------------------------------------------");
     arquivo.close();
     //Rotina que salva no primeiro endereço da EEPRON==1 quando countAgua é menor que 255
     if (countAgua > 0 && countAgua <= 255)EEPROM.write(endEEpron, countAgua); //Na posição zero ja tem que esta gravado a posição inicial de leitura
@@ -340,7 +340,7 @@ void display2(int somaPosEEpron, int segundos, int minutos, int horas, int diada
   display.print("/"); display.print(ano);
   //==========================================================================================================
   //Hora
-  display.setCursor(40, 50);
+  display.setCursor(45, 50);
   if (horas < 10) {
     display.print("0");
     display.print(horas);
@@ -350,14 +350,14 @@ void display2(int somaPosEEpron, int segundos, int minutos, int horas, int diada
     display.print("0");
     display.print(minutos);
   } else display.print(minutos);
-  display.print(":");
-  if (segundos < 10) {
-    display.print("0");
-    display.print(segundos);
-  } else display.print(segundos);
+  /* display.print(":");
+   if (segundos < 10) {
+     display.print("0");
+     display.print(segundos);
+   } else display.print(segundos);*/
   display.display(); display.clearDisplay();
   //==========================================================================================================
-  delay(timeFiltro);
+  //delay(timeFiltro);
 }
 
 void zeraTudo(int horas, int minutos) {
@@ -379,10 +379,9 @@ void ZERA(boolean flag2) {
     for (int i = 0; i < 255; i++) EEPROM.write(i, addr);
   }
 }
-void Contador(){
-      somaPosEEpron++;
-      countAgua++;//conta as garrafas
-      WriteSDEE(horas,  minutos, segundos, diadomes, mes, ano, countAgua);//Passa os parametros para escrita no SD   
+void Contador() {
+  countAgua++, somaPosEEpron++;
+  WriteSDEE(horas,  minutos, segundos, diadomes, mes, ano, countAgua);//Passa os parametros para escrita no SD
 }
 
 
