@@ -91,13 +91,6 @@ void setup() {
     display.print("Sem cartao SD");
     display.display();
   }
-  display.clearDisplay();
-  display.setTextSize(2);
-  display.setTextColor(WHITE);
-  display.setCursor(10, 0);
-  display.print("Cartao SD Iniciado");
-  display.display();
-  delay(delayCartaoIniciado); display.clearDisplay();
 }
 //Fim Setup
 
