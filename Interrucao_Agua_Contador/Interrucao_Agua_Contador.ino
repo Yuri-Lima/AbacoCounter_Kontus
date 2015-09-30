@@ -23,7 +23,7 @@ String diadasemana2;
 //================================================
 //EEPROM
 #define addr 0x00
-uint16_t somaPosEEpron = 0x00;//Guarda o somatorio dos numeros guardados no endereços da EEPRON
+uint32_t somaPosEEpron = 0x00;//Guarda o somatorio dos numeros guardados no endereços da EEPRON
 uint16_t endEEpron = 0x01;//Guarda os ultimos endereços da EEPRON na posição ZERO
 boolean flagEEpron = true;
 //================================================
@@ -44,7 +44,7 @@ boolean flagSD = true;//Flag de validação do SD-CARD
 //================================================
 //Contadores
 #define limiteCont 0xF230//Limita a contagem(Padrão 62000)
-uint16_t countAgua = 0x00; //Contador de agua limite de 65.535 2 bytes
+uint32_t countAgua = 0x00; //Contador de agua limite de 65.535 2 bytes
 //================================================
 //Sensor Reflexivo
 #define sensorReflexivo  18
@@ -68,7 +68,7 @@ void setup() {
   display.setTextColor(WHITE);
   display.setCursor(15, 0);
   display.clearDisplay();
-  display.print("Robot One");
+  display.print(F("Robot One"));
   display.display();
   delay(delayRobotOne); display.clearDisplay();
   //==========================================================================================================
@@ -77,18 +77,18 @@ void setup() {
     display.setTextSize(1);
     display.setTextColor(WHITE);
     display.setCursor(20, 0);
-    display.println("Erro ao iniciar.");
+    display.println(F("Erro ao iniciar."));
     display.setCursor(35, 10);
-    display.println("Desligue!");
+    display.println(F("Desligue!"));
     display.setCursor(35, 20);
-    display.print("98769.9288");
+    display.print(F("98769.9288"));
     display.display();
     display.setTextSize(1);
     display.setTextColor(WHITE);
     display.setCursor(30, 40);
-    display.println("Diagnostico: ");
+    display.println(F("Diagnostico: "));
     display.setCursor(25, 50);
-    display.print("Sem cartao SD");
+    display.print(F("Sem cartao SD"));
     display.display();
   }
 }
@@ -100,19 +100,19 @@ void loop() {
   //==========================================================================================================
   if (flagSD) {
     switch (diadasemana) {
-      case 0: diadasemana2 = "Domingo";
+      case 0: diadasemana2 = F("Domingo");
         break;
-      case 1: diadasemana2 = "Segunda";
+      case 1: diadasemana2 = F("Segunda");
         break;
-      case 2: diadasemana2 = "Terca";
+      case 2: diadasemana2 = F("Terca");
         break;
-      case 3: diadasemana2 = "Quarta";
+      case 3: diadasemana2 = F("Quarta");
         break;
-      case 4: diadasemana2 = "Quinta";
+      case 4: diadasemana2 = F("Quinta");
         break;
-      case 5: diadasemana2 = "Sexta";
+      case 5: diadasemana2 = F("Sexta");
         break;
-      case 6: diadasemana2 = "Sabado";
+      case 6: diadasemana2 = F("Sabado");
         break;
     }
     //Inicio EEPROM Energia
@@ -173,12 +173,12 @@ void WriteSDEE(int horas, int minutos, int segundos, int diadomes, int mes, int 
   boolean flagWriteSDEE = true;//False para nao gravar nada
   if (flagWriteSDEE) {
     //if (SD.exists("LogData.txt")) SD.remove("LogData.csv"); //Apaga para atualizar a tabela
-    arquivo = SD.open("LogData.txt", FILE_WRITE);//escreve no SD
+    arquivo = SD.open(F("LogData.txt"), FILE_WRITE);//escreve no SD
     //if (horas - lastHoras == 1)arquivo = SD.open("LogHora.csv", FILE_WRITE); //escreve no SD
     //arquivo.seek(0x00);
-    arquivo.print("Quantidade: "); arquivo.println(somaPosEEpron);
-    arquivo.print("Horario: "); arquivo.print(horas); arquivo.print(":"); arquivo.println(minutos);
-    arquivo.print("Data: "); arquivo.print(diadomes); arquivo.print("/"); arquivo.print(mes); arquivo.print("/"); arquivo.println(ano); arquivo.println("------------------------------------------------------");
+    arquivo.print(F("Quantidade: ")); arquivo.println(somaPosEEpron);
+    arquivo.print(F("Horario: ")); arquivo.print(horas); arquivo.print(F(":")); arquivo.println(minutos);
+    arquivo.print(F("Data: ")); arquivo.print(diadomes); arquivo.print(F("/")); arquivo.print(mes); arquivo.print(F("/")); arquivo.println(ano); arquivo.println("------------------------------------------------------");
     arquivo.close();
     //Rotina que salva no primeiro endereço da EEPRON==1 quando countAgua é menor que 255
     if (countAgua > 0 && countAgua <= 255)EEPROM.write(endEEpron, countAgua); //Na posição zero ja tem que esta gravado a posição inicial de leitura
@@ -196,10 +196,10 @@ void WriteSDEE(int horas, int minutos, int segundos, int diadomes, int mes, int 
 //==========================================================================================================
 void SelecionaDataeHora() { //Seta a data e a hora do DS1307
   byte segundos = 00; //Valores de 0 a 59
-  byte minutos = 53; //Valores de 0 a 59
-  byte horas = 22; //Valores de 0 a 23
-  byte diadasemana = 4; //Valores de 0 a 6 - 0=Domingo, 1 = Segunda, etc.
-  byte diadomes = 24; //Valores de 1 a 31
+  byte minutos = 33; //Valores de 0 a 59
+  byte horas = 7; //Valores de 0 a 23
+  byte diadasemana = 3; //Valores de 0 a 6 - 0=Domingo, 1 = Segunda, etc.
+  byte diadomes = 30; //Valores de 1 a 31
   byte mes = 9; //Valores de 1 a 12
   byte ano = 15; //Valores de 0 a 99
   Wire.beginTransmission(DS1307_ADDRESS);
@@ -261,11 +261,11 @@ void erro() {
   display.setTextSize(2);
   display.setTextColor(WHITE);
   display.setCursor(25, 30);
-  display.print("Contagem");
+  display.print(F("Contagem"));
   display.setTextSize(2);
   display.setTextColor(WHITE);
   display.setCursor(30, 50);
-  display.print("Maxima");
+  display.print(F("Maxima"));
   display.display();
 }
 
@@ -322,25 +322,25 @@ void display2(int somaPosEEpron, int segundos, int minutos, int horas, int diada
   display.setCursor(10, 40);
   display.print(diadasemana2); display.print(" - ");
   if (diadomes < 10) {
-    display.print("0");
+    display.print(F("0"));
     display.print(diadomes);
   } else display.print(diadomes);
-  display.print("/");
+  display.print(F("/"));
   if (mes < 10) {
-    display.print("0");
+    display.print(F("0"));
     display.print(mes);
   } else display.print(mes);
-  display.print("/"); display.print(ano);
+  display.print(F("/")); display.print(ano);
   //==========================================================================================================
   //Hora
   display.setCursor(45, 50);
   if (horas < 10) {
-    display.print("0");
+    display.print(F("0"));
     display.print(horas);
   } else display.print(horas);
-  display.print(":");
+  display.print(F(":"));
   if (minutos < 10) {
-    display.print("0");
+    display.print(F("0"));
     display.print(minutos);
   } else display.print(minutos);
   /* display.print(":");
