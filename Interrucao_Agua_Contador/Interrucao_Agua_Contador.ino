@@ -23,7 +23,7 @@ String diadasemana2;
 //================================================
 //EEPROM
 #define addr 0x00
-uint32_t somaPosEEpron = 0x00;//Guarda o somatorio dos numeros guardados no endereços da EEPRON
+volatile uint32_t somaPosEEpron = 0x00;//Guarda o somatorio dos numeros guardados no endereços da EEPRON
 uint16_t endEEpron = 0x01;//Guarda os ultimos endereços da EEPRON na posição ZERO
 boolean flagEEpron = true;
 //================================================
@@ -41,21 +41,22 @@ int16_t segundos, minutos, horas, diadasemana, diadomes, mes, ano;
 //Sd Card
 File arquivo;//Objeto da classe File
 boolean flagSD = true;//Flag de validação do SD-CARD
+volatile boolean flag3;
 //================================================
 //Contadores
 #define limiteCont 0xF230//Limita a contagem(Padrão 62000)
-uint32_t countAgua = 0x00; //Contador de agua limite de 65.535 2 bytes
+volatile uint32_t countAgua = 0x00; //Contador de agua limite de 65.535 2 bytes
+
 //================================================
 //Sensor Reflexivo
 #define sensorReflexivo  18
-#define timeFiltro 2
 
 void setup() {
   //Interrupção do Sensor Retro-Reflexivo
-  attachInterrupt(digitalPinToInterrupt(sensorReflexivo), Contador, FALLING);
+  attachInterrupt(digitalPinToInterrupt(sensorReflexivo), Contador, RISING );
   ZERA(0);//Iniciadores, true para zerar tudo
   pinMode(sensorReflexivo, INPUT_PULLUP);
-  //Serial.begin(9600);
+  //Serial.begin(115200);
   //I2C RTC
   Wire.begin();
   //SelecionaDataeHora();//Tem que ficar abaixo do Wire.begin é ativado apenas para mudar data e hora
@@ -95,6 +96,9 @@ void setup() {
 //Fim Setup
 
 void loop() {
+  if (flag3) {
+    WriteSDEE(horas,  minutos, segundos, diadomes, mes, ano, countAgua);//Passa os parametros para escrita no SD
+  } flag3 = false;
   // Le os valores (data e hora) do modulo DS130
   WIRE(&segundos, &minutos, &horas, &diadasemana, &diadomes, &mes, &ano);
   //==========================================================================================================
@@ -115,16 +119,17 @@ void loop() {
       case 6: diadasemana2 = F("Sabado");
         break;
     }
-    //Inicio EEPROM Energia
-    //==========================================================================================================
-    //Rotina para saber se caiu energia ou mudou o dia
-    zeraTudo(horas, minutos);
+
     //==========================================================================================================
     //Faz essa rotina ativar apenas uma vez a cada rest ou queda de luz
     uint16_t posEpron[256];
     if (flagEEpron) {
+      //Rotina para saber se caiu energia ou mudou o dia
+      if (EEPROM.read(255) != diadasemana) {
+        zeraTudo();
+      }
       EEPROM.write(255, diadasemana);//Salva o diadasemana na EEPROM
-      for (int i = 1; i < 255; i++) {//i==1 pois a posição zero esta reservada
+      for (int16_t i = 1; i < 255; i++) {//i==1 pois a posição zero esta reservada
         posEpron[i] = EEPROM.read(i);//Realizar a leitura dos endereços da EEPRON e guarda no vetor
         //Soma os vetores acima de zero em somaPosEEpron
         if (posEpron[i] > 0) {
@@ -144,25 +149,15 @@ void loop() {
         }
       }
     } flagEEpron = false;
-    //Serial.print(endEEpron); Serial.print(" - "); Serial.print(countAgua); Serial.print(" - "); Serial.println(somaPosEEpron);
-    //Fim EEPRON
-    //----------------------------------------------------------------------------------------------------------
-    //==========================================================================================================
-    //Inicio LDR
-    //==========================================================================================================
-    //----------------------------------------------------------------------------------------------------------
-    //Acionamento de contagem pelo LDR
-    while (digitalRead(sensorReflexivo)) {
-      WIRE(&segundos, &minutos, &horas, &diadasemana, &diadomes, &mes, &ano);//Atualiza data e hora
-      zeraTudo(horas, minutos); //Zera dependedo das ccondição e dados atualizados
-      display2(somaPosEEpron, segundos,  minutos,  horas,  diadasemana,  diadomes,  mes,  ano);//Imprimi Display
-    }
+
     if (somaPosEEpron == limiteCont) {
       flagSD = 0x00;  //Para todo o processo e vai para erro() de contagem Maxima;
       erro();
     }
     //Fim Ultrasson
   }
+  display2(somaPosEEpron, minutos,  horas,  diadasemana,  diadomes,  mes,  ano);//Imprimi Display
+  //Serial.print(endEEpron); Serial.print(" - "); Serial.print(countAgua); Serial.print(" - "); Serial.println(somaPosEEpron);
 
 }
 //Fim do Loop
@@ -170,37 +165,34 @@ void loop() {
 //----------------------------------------------------------------------------------------------------------
 //Controle de EEPRON + SD escrita
 void WriteSDEE(int horas, int minutos, int segundos, int diadomes, int mes, int ano, int countAgua) {
-  boolean flagWriteSDEE = true;//False para nao gravar nada
-  if (flagWriteSDEE) {
-    //if (SD.exists("LogData.txt")) SD.remove("LogData.csv"); //Apaga para atualizar a tabela
-    arquivo = SD.open(F("LogData.txt"), FILE_WRITE);//escreve no SD
-    //if (horas - lastHoras == 1)arquivo = SD.open("LogHora.csv", FILE_WRITE); //escreve no SD
-    //arquivo.seek(0x00);
-    arquivo.print(F("Quantidade: ")); arquivo.println(somaPosEEpron);
-    arquivo.print(F("Horario: ")); arquivo.print(horas); arquivo.print(F(":")); arquivo.println(minutos);
-    arquivo.print(F("Data: ")); arquivo.print(diadomes); arquivo.print(F("/")); arquivo.print(mes); arquivo.print(F("/")); arquivo.println(ano); arquivo.println("------------------------------------------------------");
-    arquivo.close();
-    //Rotina que salva no primeiro endereço da EEPRON==1 quando countAgua é menor que 255
-    if (countAgua > 0 && countAgua <= 255)EEPROM.write(endEEpron, countAgua); //Na posição zero ja tem que esta gravado a posição inicial de leitura
-    if (countAgua > 254) {
-      endEEpron++;
-      EEPROM.write(0, endEEpron);//coloca a posição 0 o endereço da EEPRON atual
-      countAgua = 0x00;
-      somaPosEEpron = 0x00;
-      EEPROM.write(endEEpron, countAgua);//Pra validar uma das condição if da EEPRON salva ZERO no proximo endereço
-      flagEEpron = true;
-    }
+  //if (SD.exists("LogData.txt")) SD.remove("LogData.csv"); //Apaga para atualizar a tabela
+  arquivo = SD.open(F("LogData.txt"), FILE_WRITE);//escreve no SD
+  //if (horas - lastHoras == 1)arquivo = SD.open("LogHora.csv", FILE_WRITE); //escreve no SD
+  //arquivo.seek(0x00);
+  arquivo.print(F("Quantidade: ")); arquivo.println(somaPosEEpron);
+  arquivo.print(F("Horario: ")); arquivo.print(horas); arquivo.print(F(":")); arquivo.println(minutos);
+  arquivo.print(F("Data: ")); arquivo.print(diadomes); arquivo.print(F("/")); arquivo.print(mes); arquivo.print(F("/")); arquivo.println(ano); arquivo.println(F("------------------------------------------------------"));
+  arquivo.close();
+  //Rotina que salva no primeiro endereço da EEPRON==1 quando countAgua é menor que 255
+  if (countAgua > 0 && countAgua <= 255)EEPROM.write(endEEpron, countAgua); //Na posição zero ja tem que esta gravado a posição inicial de leitura
+  if (countAgua == 255) {
+    endEEpron++;
+    EEPROM.write(0, endEEpron);//coloca a posição 0 o endereço da EEPRON atual
+    countAgua = 0x00;
+    somaPosEEpron = 0x00;
+    EEPROM.write(endEEpron, countAgua);//Pra validar uma das condição if da EEPRON salva ZERO no proximo endereço
+    flagEEpron = true;
   }
 }
 
 //==========================================================================================================
 void SelecionaDataeHora() { //Seta a data e a hora do DS1307
   byte segundos = 00; //Valores de 0 a 59
-  byte minutos = 33; //Valores de 0 a 59
-  byte horas = 7; //Valores de 0 a 23
-  byte diadasemana = 3; //Valores de 0 a 6 - 0=Domingo, 1 = Segunda, etc.
-  byte diadomes = 30; //Valores de 1 a 31
-  byte mes = 9; //Valores de 1 a 12
+  byte minutos = 24; //Valores de 0 a 59
+  byte horas = 00; //Valores de 0 a 23
+  byte diadasemana = 4; //Valores de 0 a 6 - 0=Domingo, 1 = Segunda, etc.
+  byte diadomes = 1; //Valores de 1 a 31
+  byte mes = 10; //Valores de 1 a 12
   byte ano = 15; //Valores de 0 a 99
   Wire.beginTransmission(DS1307_ADDRESS);
   Wire.write(zero); //Stop no CI para que o mesmo possa receber os dados
@@ -282,7 +274,7 @@ void WIRE(int* segundos, int* minutos, int* horas, int* diadasemana, int* diadom
   *mes = ConverteparaDecimal(Wire.read());
   *ano = ConverteparaDecimal(Wire.read());
 }
-void display2(int somaPosEEpron, int segundos, int minutos, int horas, int diadasemana, int diadomes, int mes, int ano) {
+void display2(int somaPosEEpron, int minutos, int horas, int diadasemana, int diadomes, int mes, int ano) {
 
   //----------------------------------------------------------------------------------------------------------
   //==========================================================================================================
@@ -320,7 +312,7 @@ void display2(int somaPosEEpron, int segundos, int minutos, int horas, int diada
   display.setTextSize(1);
   display.setTextColor(WHITE);
   display.setCursor(10, 40);
-  display.print(diadasemana2); display.print(" - ");
+  display.print(diadasemana2); display.print(F(" - "));
   if (diadomes < 10) {
     display.print(F("0"));
     display.print(diadomes);
@@ -350,31 +342,32 @@ void display2(int somaPosEEpron, int segundos, int minutos, int horas, int diada
    } else display.print(segundos);*/
   display.display(); display.clearDisplay();
   //==========================================================================================================
-  //delay(timeFiltro);
+
 }
 
-void zeraTudo(int horas, int minutos) {
-  if (EEPROM.read(255) != diadasemana) {
-    EEPROM.write(255, diadasemana);//Salva o diadasemana na EEPROM
-    countAgua = 0x00;
-    somaPosEEpron = 0x00;
-    for (int i = 0; i < 255; i++) {
-      EEPROM.write(i, addr); //zera todos os endereços da EEPRON
-    }
-    //Serial.println(minutos);
+void zeraTudo() {
+  EEPROM.write(255, diadasemana);//Salva o diadasemana na EEPROM
+  countAgua = 0x00;
+  somaPosEEpron = 0x00;
+  for (int i = 0; i < 255; i++) {
+    EEPROM.write(i, addr); //zera todos os endereços da EEPRON
   }
 }
+
 void ZERA(boolean flag2) {
   if (flag2) {
     countAgua = 0x00;
     somaPosEEpron = 0x00;
     EEPROM.write(0, 1);//Inicializador que vai lembrar a ultima posição da contagem. So ativar uma vez e depois comentar
-    for (int i = 0; i < 255; i++) EEPROM.write(i, addr);
+    for (int i = 0; i < 255; i++) {
+      EEPROM.write(i, addr);
+    }
   }
 }
 void Contador() {
-  countAgua++, somaPosEEpron++;
-  WriteSDEE(horas,  minutos, segundos, diadomes, mes, ano, countAgua);//Passa os parametros para escrita no SD
+  countAgua++;
+  somaPosEEpron++;
+  flag3 = true;
 }
 
 
