@@ -30,14 +30,14 @@
 * [Abaco SE](https://www.youtube.com/watch?v=K9LMvtEWeMo&list=PL4vok-JSscqD_f4F9JEucI_fXp49GaD4L&index=13) 
 
 > ### Protoypes Images
-![](Images)
-<img src="images/1.JPG">
-<img src="images/2.JPG">
-<img src="images/3.JPG">
-<img src="images/4.JPG">
-<img src="images/5.JPG">
-<img src="images/6.JPG">
-<img src="images/7.JPG">
+![](images)
+<img src="images/1.jpg">
+<img src="images/2.jpg">
+<img src="images/3.jpg">
+<img src="images/4.jpg">
+<img src="images/5.jpg">
+<img src="images/6.jpg">
+<img src="images/7.jpg">
 
 > ### Contact
 
